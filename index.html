@@ -508,24 +508,35 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
   </section>
 
   <!-- Sauvegarde -->
+  <section id="page-save" class="">
+    <div class="card"><div class="card-h"><div>Sauvegarde</div></div>
+      <div class="card-b"><button id="btnExport" class="ghost">Exporter JSON</button>
+        <input id="fileImport" type="file" accept="application/json">
+        <button id="btnImport">Importer JSON</button>
+        <button id="btnReset" class="ghost" style="margin-left:10px">Réinitialiser</button>
+        <hr class="soft">
+        <div class="small">Enregistrer <b>directement dans ce fichier HTML</b> (nécessite Chrome/Edge récents).</div>
+        <div class="controls">
+          <button id="btnPickHtml">Choisir ce fichier pour l'autosauvegarde</button>
+          <button id="btnSaveHtmlNow" class="ghost">Enregistrer maintenant</button>
+        </div>
+        <div class="hint" id="saveHint">Autosauvegarde activée sur ce fichier.</div></div>
+    </div>
   
-
-<section id="page-save">
-  <div class="card">
-    <div class="card-h">
-      <div>Sauvegarde — JSON central (lecture/écriture manuelle)</div>
-      <div class="small">Ouvrir la page via <b>https</b> (GitHub Pages) — pas en <code>file://</code></div>
-    </div>
-    <div class="card-b">
-      <div class="controls">
-        <div class="item"><button id="btnCentralPull" type="button" class="ghost">← Charger depuis le central</button></div>
-        <div class="item"><button id="btnCentralPush" type="button">Enregistrer vers le central →</button></div>
-        <div class="item"><button id="btnCentralTest" type="button" class="ghost small">Tester l'accès</button></div>
+    <!-- Neptune: bloc de sauvegarde centralisée (JsonStorage) -->
+    <div class="card" id="simpleSaveWrap">
+      <div class="card-h"><div>Sauvegarde centralisée (JsonStorage)</div></div>
+      <div class="card-b">
+        <div class="controls">
+          <button id="btnSimplePull" type="button" class="ghost">← Recharger</button>
+          <button id="btnSimplePush" type="button">Pousser →</button>
+          <span class="small" style="margin-left:10px">Autosync 5 min</span>
+        </div>
+        <div class="hint" id="simpleSaveStatus">—</div>
       </div>
-      <div id="centralStatus" class="hint" style="margin-top:8px">—</div>
     </div>
-  </div>
-</section>
+
+  </section>
 </div>
 
 <script>
@@ -3020,111 +3031,672 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <script>
-(function(){
-  "use strict";
+(function(){"use strict";
+  const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const LS_OVERRIDE = "neptune-central-override-uri";
+  let currentUri = (localStorage.getItem(LS_OVERRIDE) || FIXED_URI);
+  const API_KEY
 
-  // ========== CONFIG: JSON central (à adapter si tu changes d'URI/clé) ==========
-  const CENTRAL_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
-  const API_KEY     = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
-
-  // ========== Helpers UI ==========
-  const $ = (s)=>document.querySelector(s);
-  const status = (m)=>{ const el=$("#centralStatus"); if(el) el.textContent = m + " ("+new Date().toLocaleTimeString()+")"; console.log("[Central]", m); };
-
-  // ========== Capture et application d'état ==========
-  function collectState(){
-    try{ if(typeof window.save==="function") window.save(); }catch(e){}
-    if(!window.data || typeof window.data!=="object") window.data = {};
-    // petit tampon de traçabilité
-    if(!window.data.__meta) window.data.__meta = {};
-    window.data.__meta.updatedAt = new Date().toISOString();
-    return window.data;
+  // helper: create new central JSON
+  async function jsCreate(){
+    const url='https://api.jsonstorage.net/v1/json?apiKey='+encodeURIComponent(API_KEY);
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    if(!r.ok){ const t=await r.text().catch(()=>''); throw new Error('POST '+r.status+' — '+t.slice(0,200)); }
+    const j=await r.json(); if(!j.uri) throw new Error('Réponse inattendue');
+    return j.uri;
   }
-  function applyState(remote){
-    if(remote && typeof remote==="object"){
-      window.data = remote;
-      // demande à l'app de se rafraîchir si des hooks existent
-      try{ if(typeof window.refreshActivePage==="function") window.refreshActivePage(); }catch(e){}
-      try{ if(typeof window.render==="function") window.render(); }catch(e){}
+   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+
+  function status(msg){
+    const el = document.getElementById('simpleSaveStatus');
+    if(el) el.textContent = msg + " (" + new Date().toLocaleTimeString() + ")";
+  }
+  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
+  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
+
+  async function jsGet(){
+  try{
+    let r = await fetch(currentUri,{method:'GET',cache:'no-cache'});
+    if(r.status===401||r.status===403){
+      r = await fetch(currentUri+(currentUri.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY),{method:'GET',cache:'no-cache'});
     }
-  }
-
-  // ========== API central JSONStorage (GET / PUT) ==========
-  function withKey(u){ return u + (u.includes("?")?"&":"?") + "apiKey=" + encodeURIComponent(API_KEY); }
-
-  async function centralGET(){
-    const r = await fetch(withKey(CENTRAL_URI), { method:"GET", cache:"no-cache", mode:"cors" });
-    if(!r.ok){ const t=await r.text().catch(()=>"" ); throw new Error("GET "+r.status+" — "+t.slice(0,200)); }
+    if(!r.ok){
+      const txt = await r.text().catch(()=>'');
+      throw new Error('HTTP '+r.status+' — '+txt.slice(0,200));
+    }
     return r.json();
+  }catch(e){ status('Échec lecture — '+(e.message||e)); throw e; }
+}
+  async function jsPut(obj){
+  // try primary push
+  const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+  const body = JSON.stringify(obj);
+  const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+  let r = await fetch(u, {method:'PUT', headers:{'Content-Type':'application/json'}, body});
+  if(r.ok){ status('PUSH ok ('+sizeKB+' Ko)'); return r.json(); }
+  const txt = await r.text().catch(()=>''), code=r.status;
+  // 404 -> auto-create a new item, store override, retry once
+  if(code===404){
+    try{
+      status('Central introuvable (404) — création d\'un nouveau…');
+      const newUri = await jsCreate();
+      currentUri = newUri; localStorage.setItem(LS_OVERRIDE, newUri);
+      const u2 = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+      r = await fetch(u2, {method:'PUT', headers:{'Content-Type':'application/json'}, body});
+      if(r.ok){ status('Nouveau central créé ✅ — PUSH ok ('+sizeKB+' Ko)'); return r.json(); }
+      const t2 = await r.text().catch(()=>'' ); throw new Error('HTTP '+r.status+' — '+t2.slice(0,200));
+    }catch(e){ throw e; }
   }
-  async function centralPUT(obj){
-    const body = JSON.stringify(obj);
-    const r = await fetch(withKey(CENTRAL_URI), { method:"PUT", headers:{ "Content-Type":"application/json" }, body, mode:"cors", cache:"no-store" });
-    if(!r.ok){ const t=await r.text().catch(()=>"" ); throw new Error("PUT "+r.status+" — "+t.slice(0,200)); }
-    return r.json().catch(()=>null);
+  // other errors (429 etc.)
+  const ra = r.headers && r.headers.get ? r.headers.get('Retry-After') : null;
+  const backoff = code===429 ? (parseRetryAfter(ra)||60000) : 0;
+  if(backoff) __cooldownUntil = Date.now() + backoff;
+  throw new Error('HTTP '+code+' — '+txt.slice(0,200)+(backoff?(' — retry dans '+Math.ceil(backoff/1000)+'s'):'')+' — payload '+sizeKB+' Ko');
+}
+
+  async function simplePull(){ 
+    try{
+      const remote = await jsGet();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); status('Échec lecture'); }
+  }
+  async function simplePush(){ 
+    try{ if(typeof window.save==='function') window.save(); stamp(); await jsPut(window.data||{}); status('Données poussées'); }
+    catch(e){ console.warn(e); status('Échec écriture'); }
   }
 
-  // ========== Actions ==========
-  async function doPull(){
-    try{
-      status("Lecture…");
-      const remote = await centralGET();
-      applyState(remote);
-      status("Chargé depuis le central");
-    }catch(e){ console.warn(e); status("Échec lecture — "+(e.message||e)); }
-  }
-  async function doPush(){
-    if(location.protocol==="file:"){ status("Ouvrez la page via https:// (GitHub Pages)"); return; }
-    try{
-      status("Préparation…");
-      const payload = collectState();
-      status("Écriture…");
-      await centralPUT(payload);
-      status("Enregistré vers le central ✅");
-    }catch(e){ console.warn(e); status("Échec écriture — "+(e.message||e)); }
-  }
-  async function doTest(){
-    try{
-      const r = await fetch(withKey(CENTRAL_URI), { method:"GET", cache:"no-cache", mode:"cors" });
-      status("Test accès : " + r.status + (r.ok ? " (OK)" : " (erreur)"));
-    }catch(e){ status("Test accès — " + (e.message||e)); }
-  }
-
-  // ========== Bind ==========
   function bind(){
-    const p=$("#btnCentralPull"), s=$("#btnCentralPush"), t=$("#btnCentralTest");
-    if(p && !p.__b){ p.__b=true; p.addEventListener("click", doPull); }
-    if(s && !s.__b){ s.__b=true; s.addEventListener("click", doPush); }
-    if(t && !t.__b){ t.__b=true; t.addEventListener("click", doTest); }
+    const pull = document.getElementById('btnSimplePull');
+    const push = document.getElementById('btnSimplePush');
+    if(pull && !pull.__bound){ pull.__bound=true; pull.addEventListener('click', simplePull); }
+    if(push && !push.__bound){ push.__bound=true; push.addEventListener('click', simplePush); }
   }
-  document.addEventListener("DOMContentLoaded", ()=>{
-    bind();
-    // Au démarrage : on charge depuis le central pour aligner tous les PC
-    doPull();
-  });
-  // Re-bind si l'app re-render les onglets (au clic sur la barre)
-  document.addEventListener("click", (ev)=>{
-    const tabs=document.getElementById("tabs");
-    if(tabs && (ev.target===tabs || (ev.target && tabs.contains(ev.target)))) setTimeout(bind,0);
-  });
+
+  // Autosync: every 5 minutes (pull)
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>simplePull().catch(()=>{}); tick(); t=setInterval(tick,5*60*1000); }
+
+  // Init now and also when user navigates tabs
+  document.addEventListener('DOMContentLoaded', function(){ bind(); startTimer(); });
+  const tabs = document.getElementById('tabs'); if(tabs) tabs.addEventListener('click', ()=>setTimeout(bind,0));
 })();
 </script>
 
-</body></html>
 
+<script>
+(function(){"use strict";
+  const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const API_KEY   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+
+  // Push state & backoff
+  let __pushInflight = false;
+  let __cooldownUntil = 0;
+  function ms(){ return Date.now(); }
+  function secLeft(){ return Math.max(0, Math.ceil((__cooldownUntil - ms())/1000)); }
+  function parseRetryAfter(h){
+    if(!h) return 0;
+    const s = parseInt(h,10);
+    if(!isNaN(s)) return s*1000;
+    const t = Date.parse(h);
+    if(!isNaN(t)) return Math.max(0, t - ms());
+    return 0;
+  }
+
+  function status(msg){
+    const el = document.getElementById('simpleSaveStatus');
+    if(el) el.textContent = msg + " (" + new Date().toLocaleTimeString() + ")";
+  }
+  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
+  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
+
+  async function jsGet(){
+    try{
+      let r = await fetch(FIXED_URI,{method:'GET',cache:'no-cache'});
+      if(r.status===401||r.status===403){
+        r = await fetch(FIXED_URI+(FIXED_URI.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY),{method:'GET',cache:'no-cache'});
+      }
+      if(!r.ok){
+        const txt = await r.text().catch(()=>'');
+        throw new Error('HTTP '+r.status+' — '+txt.slice(0,200));
+      }
+      return r.json();
+    }catch(e){ status('Échec lecture — '+(e.message||e)); throw e; }
+  }
+
+  async function jsPut(obj){
+    const u = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+    const body = JSON.stringify(obj);
+    const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+    const r = await fetch(u, {method:'PUT', headers:{'Content-Type':'application/json'}, body});
+    if(!r.ok){
+      const txt = await r.text().catch(()=>'');
+      const ra = r.headers && r.headers.get ? r.headers.get('Retry-After') : null;
+      const backoff = r.status===429 ? (parseRetryAfter(ra)||60000) : 0;
+      if(backoff){ __cooldownUntil = ms() + backoff; }
+      throw new Error('HTTP '+r.status+' — '+txt.slice(0,200)+(backoff?(' — retry dans '+Math.ceil(backoff/1000)+'s'):'') );
+    }
+    status('PUSH ok ('+sizeKB+' Ko)');
+    return r.json();
+  }
+
+  async function simplePull(){
+    if(__pushInflight) return;
+    try{
+      const remote = await jsGet();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); }
+  }
+
+  async function simplePush(){
+    if(__pushInflight){ status('Un envoi est déjà en cours…'); return; }
+    if(ms() < __cooldownUntil){ status('Limite atteinte — réessayez dans '+secLeft()+'s'); return; }
+    __pushInflight = true;
+    try{
+      if(typeof window.save==='function') window.save();
+      stamp();
+      await jsPut(window.data||{});
+    }catch(e){ status('Échec écriture — '+(e.message||e)); console.warn(e); }
+    finally{ __pushInflight = false; }
+  }
+
+  function bind(){
+    const pull = document.getElementById('btnSimplePull');
+    const push = document.getElementById('btnSimplePush');
+    if(pull && !pull.__bound){ pull.__bound=true; pull.addEventListener('click', simplePull); }
+    if(push && !push.__bound){ push.__bound=true; push.addEventListener('click', simplePush); }
+  }
+
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>simplePull().catch(()=>{}); tick(); t=setInterval(tick,5*60*1000); }
+
+  document.addEventListener('DOMContentLoaded', function(){ bind(); startTimer(); });
+  const tabs = document.getElementById('tabs'); if(tabs) tabs.addEventListener('click', ()=>setTimeout(bind,0));
+})();
+</script>
+
+
+<script>
+(function(){"use strict";
+  const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const API_KEY   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+
+  let __pushInflight = false;
+  let __cooldownUntil = 0;
+
+  function ms(){ return Date.now(); }
+  function secLeft(){ return Math.max(0, Math.ceil((__cooldownUntil - ms())/1000)); }
+  function parseRetryAfter(h){
+    if(!h) return 0;
+    const s = parseInt(h,10);
+    if(!isNaN(s)) return s*1000;
+    const t = Date.parse(h);
+    if(!isNaN(t)) return Math.max(0, t - ms());
+    return 0;
+  }
+
+  function status(msg){
+    const el = document.getElementById('simpleSaveStatus');
+    if(el) el.textContent = msg + " (" + new Date().toLocaleTimeString() + ")";
+    console.log("[Neptune] "+msg);
+  }
+  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
+  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
+
+  async function jsGet(){
+    let r = await fetch(FIXED_URI,{method:'GET',cache:'no-cache'});
+    if(r.status===401||r.status===403) r = await fetch(FIXED_URI+(FIXED_URI.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY),{method:'GET',cache:'no-cache'});
+    if(!r.ok){ const txt = await r.text().catch(()=>'');
+      throw new Error('HTTP '+r.status+' — '+txt.slice(0,200)); }
+    return r.json();
+  }
+
+  async function jsPut(obj){
+    const u = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+    // compact body to reduce size vs 32KB limit
+    const body = JSON.stringify(obj);
+    const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+    const r = await fetch(u, {method:'PUT', headers:{'Content-Type':'application/json'}, body});
+    if(!r.ok){
+      const txt = await r.text().catch(()=>'');
+      const ra = r.headers && r.headers.get ? r.headers.get('Retry-After') : null;
+      const backoff = r.status===429 ? (parseRetryAfter(ra)||60000) : 0;
+      if(backoff) __cooldownUntil = ms() + backoff;
+      throw new Error('HTTP '+r.status+' — '+txt.slice(0,200)+(backoff?(' — retry dans '+Math.ceil(backoff/1000)+'s'):'')+' — payload '+sizeKB+' Ko');
+    }
+    status('PUSH ok ('+sizeKB+' Ko)');
+    return r.json();
+  }
+
+  async function simplePull(){
+    if(__pushInflight) return;
+    try{
+      const remote = await jsGet();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); status('Échec lecture — '+(e.message||e)); }
+  }
+
+  async function simplePush(){
+    if(__pushInflight){ status('Un envoi est déjà en cours…'); return; }
+    if(ms() < __cooldownUntil){ status('Limite atteinte — réessayez dans '+secLeft()+'s'); return; }
+    __pushInflight = true;
+    const btn = document.getElementById('btnSimplePush'); if(btn) btn.disabled = true;
+    try{
+      if(typeof window.save==='function') window.save();
+      stamp();
+      status('Envoi en cours…');
+      await jsPut(window.data||{});
+    }catch(e){ console.warn(e); status('Échec écriture — '+(e.message||e)); }
+    finally{ __pushInflight = false; if(btn) btn.disabled = false; }
+  }
+
+  // Event delegation: works even if the page re-rend la section
+  document.addEventListener('click', function(ev){
+    const push = ev.target && ev.target.closest && ev.target.closest('#btnSimplePush');
+    if(push){ ev.preventDefault(); simplePush(); return; }
+    const pull = ev.target && ev.target.closest && ev.target.closest('#btnSimplePull');
+    if(pull){ ev.preventDefault(); simplePull(); return; }
+  });
+
+  // Autosync pull toutes 5 min
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>simplePull().catch(()=>{}); tick(); t=setInterval(tick,5*60*1000); }
+  document.addEventListener('DOMContentLoaded', startTimer);
+})();
+</script>
+
+
+<script>
+(function(){"use strict";
+  const FIXED_URI_FINAL = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const API_KEY_FINAL   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+  const LS_OVERRIDE     = "neptune-central-override-uri";
+
+  let currentUri = localStorage.getItem(LS_OVERRIDE) || FIXED_URI_FINAL;
+  let inflight = false;
+  let cooldownUntil = 0;
+
+  function now(){ return Date.now(); }
+  function leftSec(){ return Math.max(0, Math.ceil((cooldownUntil - now())/1000)); }
+  function status(msg){ const el=document.getElementById('simpleSaveStatus'); if(el) el.textContent = msg + " ("+new Date().toLocaleTimeString()+")"; console.log("[push-fallback]", msg); }
+  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
+  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
+  function parseRetryAfter(h){ if(!h) return 0; const s=parseInt(h,10); if(!isNaN(s)) return s*1000; const t=Date.parse(h); if(!isNaN(t)) return Math.max(0,t-now()); return 0; }
+
+  async function createCentral(){
+    const createUrl='https://api.jsonstorage.net/v1/json?apiKey='+encodeURIComponent(API_KEY_FINAL);
+    const rc=await fetch(createUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    if(!rc.ok){ const t=await rc.text().catch(()=>'' ); throw new Error('POST '+rc.status+' — '+t.slice(0,200)); }
+    const j=await rc.json(); if(!j.uri) throw new Error('Réponse inattendue');
+    currentUri = j.uri; localStorage.setItem(LS_OVERRIDE, currentUri);
+    status("Nouveau central prêt");
+    return currentUri;
+  }
+
+  async function ensureCentral(){
+    const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+    let r = await fetch(u, {method:'GET', cache:'no-cache'});
+    if(r.status===404) { await createCentral(); return; }
+    if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('GET '+r.status+' — '+t.slice(0,200)); }
+  }
+
+  async function pushNow(){
+    if(inflight){ status('Un envoi est déjà en cours…'); return; }
+    if(now() < cooldownUntil){ status('Limite atteinte — réessayez dans '+leftSec()+'s'); return; }
+    inflight = true;
+    const btn = document.getElementById('btnSimplePush'); if(btn) btn.disabled = true;
+    try{
+      if(typeof window.save==='function') window.save();
+      stamp();
+      // 1) pré-vérif
+      await ensureCentral();
+      const body = JSON.stringify(window.data||{});
+      const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+      const headers = {'Content-Type':'application/json','apiKey':API_KEY_FINAL}; // header + query, max compat
+      status('Envoi en cours…');
+      let r = await fetch(u, {method:'PUT', headers, body});
+      if(!r.ok){
+        // 404 fallback: créer puis réessayer immédiatement
+        if(r.status===404){
+          status("404 — création d'un nouveau central puis réessai…");
+          await createCentral();
+          const u2 = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+          r = await fetch(u2, {method:'PUT', headers, body});
+        }
+      }
+      if(!r.ok){
+        const t=await r.text().catch(()=>'' );
+        const ra=r.headers&&r.headers.get?r.headers.get('Retry-After'):null;
+        const backoff=r.status===429?(parseRetryAfter(ra)||60000):0;
+        if(backoff) cooldownUntil=now()+backoff;
+        throw new Error('HTTP '+r.status+' — '+t.slice(0,200)+(backoff?(' — retry '+Math.ceil(backoff/1000)+'s'):'')+' — payload '+sizeKB+' Ko');
+      }
+      status('PUSH ok ('+sizeKB+' Ko)');
+      await r.json().catch(()=>null);
+    }catch(e){ console.warn(e); status('Échec écriture — '+(e.message||e)); }
+    finally{ inflight=false; if(btn) btn.disabled=false; }
+  }
+
+  async function pullNow(){
+    if(inflight) return;
+    try{
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+      const r = await fetch(u, {method:'GET', cache:'no-cache'});
+      if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('HTTP '+r.status+' — '+t.slice(0,200)); }
+      const remote = await r.json();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); status('Échec lecture — '+(e.message||e)); }
+  }
+
+  // Force type="button" (au cas où le HTML ne l'ait pas)
+  document.addEventListener('DOMContentLoaded', function(){
+    var b1=document.getElementById('btnSimplePush'); if(b1) b1.setAttribute('type','button');
+    var b2=document.getElementById('btnSimplePull'); if(b2) b2.setAttribute('type','button');
+  });
+
+  // Délégation de clics
+  document.addEventListener('click', function(ev){
+    const n = ev.target && ev.target.closest ? ev.target.closest('#btnSimplePush, #btnSimplePull') : null;
+    if(!n) return;
+    ev.preventDefault();
+    if(n.id==='btnSimplePush') pushNow();
+    else if(n.id==='btnSimplePull') pullNow();
+  });
+
+  // Autosync pull 5 min
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>pullNow().catch(()=>{}); tick(); t=setInterval(tick, 5*60*1000); }
+  document.addEventListener('DOMContentLoaded', startTimer);
+})();
+</script>
+
+
+<script>
+(function(){"use strict";
+  const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const API_KEY   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+  const LS_OVERRIDE = "neptune-central-override-uri";
+
+  let currentUri = localStorage.getItem(LS_OVERRIDE) || FIXED_URI;
+  let inflight = false;
+  let cooldownUntil = 0;
+
+  function now(){ return Date.now(); }
+  function leftSec(){ return Math.max(0, Math.ceil((cooldownUntil - now())/1000)); }
+  function status(msg){ const el=document.getElementById('simpleSaveStatus'); if(el) el.textContent = msg + " ("+new Date().toLocaleTimeString()+")"; console.log("[forcecreate]", msg); }
+  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
+  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
+  function parseRetryAfter(h){ if(!h) return 0; const s=parseInt(h,10); if(!isNaN(s)) return s*1000; const t=Date.parse(h); if(!isNaN(t)) return Math.max(0,t-now()); return 0; }
+
+  async function createCentral(){
+    const url='https://api.jsonstorage.net/v1/json?apiKey='+encodeURIComponent(API_KEY);
+    const rc=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    if(!rc.ok){ const t=await rc.text().catch(()=>'' ); throw new Error('POST '+rc.status+' — '+t.slice(0,200)); }
+    const j=await rc.json(); if(!j.uri) throw new Error('Réponse inattendue');
+    currentUri = j.uri; localStorage.setItem(LS_OVERRIDE, currentUri);
+    status("Nouveau central créé");
+    return currentUri;
+  }
+
+  async function ensureCentral(forceCreate){
+    // Toujours ping avec clé pour être cohérent
+    const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+    if(forceCreate || !localStorage.getItem(LS_OVERRIDE)){
+      await createCentral();
+      return;
+    }
+    let r = await fetch(u, {method:'GET', cache:'no-cache'});
+    if(r.status===404){ await createCentral(); return; }
+    if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('GET '+r.status+' — '+t.slice(0,200)); }
+  }
+
+  async function pushNow(){
+    if(inflight){ status('Un envoi est déjà en cours…'); return; }
+    if(now() < cooldownUntil){ status('Limite atteinte — réessayez dans '+leftSec()+'s'); return; }
+    inflight = true;
+    const btn=document.getElementById('btnSimplePush'); if(btn) btn.disabled = true;
+    try{
+      if(typeof window.save==='function') window.save();
+      stamp();
+      // Si pas d'override => on force la création AVANT le premier push
+      await ensureCentral(!localStorage.getItem(LS_OVERRIDE));
+      const body = JSON.stringify(window.data||{});
+      const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+      status('Envoi en cours…');
+      let r = await fetch(u, {method:'PUT', headers:{'Content-Type':'application/json','apiKey':API_KEY}, body});
+      if(!r.ok){
+        if(r.status===404){
+          // Même si on a déjà créé, on re-crée et on retente une dernière fois
+          status("404 — création et réessai…");
+          await createCentral();
+          const u2 = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+          r = await fetch(u2, {method:'PUT', headers:{'Content-Type':'application/json','apiKey':API_KEY}, body});
+        }
+      }
+      if(!r.ok){
+        const t=await r.text().catch(()=>'' );
+        const ra=r.headers&&r.headers.get?r.headers.get('Retry-After'):null;
+        const backoff=r.status===429?(parseRetryAfter(ra)||60000):0;
+        if(backoff) cooldownUntil=now()+backoff;
+        throw new Error('HTTP '+r.status+' — '+t.slice(0,200)+(backoff?(' — retry '+Math.ceil(backoff/1000)+'s'):'')+' — payload '+sizeKB+' Ko');
+      }
+      status('PUSH ok ('+sizeKB+' Ko)');
+      await r.json().catch(()=>null);
+    }catch(e){ console.warn(e); status('Échec écriture — '+(e.message||e)); }
+    finally{ inflight=false; if(btn) btn.disabled=false; }
+  }
+
+  async function pullNow(){
+    if(inflight) return;
+    try{
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+      const r = await fetch(u, {method:'GET', cache:'no-cache'});
+      if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('HTTP '+r.status+' — '+t.slice(0,200)); }
+      const remote = await r.json();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); status('Échec lecture — '+(e.message||e)); }
+  }
+
+  // Force le type="button" et crée un central si aucun override au chargement
+  document.addEventListener('DOMContentLoaded', function(){
+    var b1=document.getElementById('btnSimplePush'); if(b1) b1.setAttribute('type','button');
+    var b2=document.getElementById('btnSimplePull'); if(b2) b2.setAttribute('type','button');
+    // Création immédiate si aucun central local (évite tout 404 au premier clic)
+    if(!localStorage.getItem(LS_OVERRIDE)){
+      ensureCentral(true).catch(e=>status('Init central — '+(e.message||e)));
+    }
+  });
+
+  // Délégation de clics (robuste aux re-render)
+  document.addEventListener('click', function(ev){
+    const n = ev.target && ev.target.closest ? ev.target.closest('#btnSimplePush, #btnSimplePull') : null;
+    if(!n) return;
+    ev.preventDefault();
+    if(n.id==='btnSimplePush') pushNow();
+    else if(n.id==='btnSimplePull') pullNow();
+  });
+
+  // Autosync pull 5 min
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>pullNow().catch(()=>{}); tick(); t=setInterval(tick, 5*60*1000); }
+  document.addEventListener('DOMContentLoaded', startTimer);
+})();
+</script>
+
+
+<!-- === Neptune: Sauvegarde JSON central (URI longue) === -->
+<div class="nc-bar" style="position:fixed;right:12px;bottom:12px;display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:8px 10px;z-index:99999">
+  <button id="nc-load" style="padding:6px 10px;border:1px solid #ddd;background:#f7f7f7;border-radius:8px;cursor:pointer">← Charger</button>
+  <button id="nc-save" style="padding:6px 10px;border:1px solid #1a7f37;background:#1a7f37;color:#fff;border-radius:8px;cursor:pointer">Enregistrer →</button>
+  <span id="nc-status" style="color:#666;margin-left:6px">—</span>
+</div>
+
+<script>
+(function(){"use strict";
+  // Configuration figée (validée en console)
+  const API_KEY  = '1c5f1698-c8f7-4992-988a-d1ae29cb35ee';
+  const LONG_URI = 'https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c';
+
+  // Helpers
+  const withKey = (u) => u + (u.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(API_KEY);
+  const at = () => new Date().toLocaleTimeString();
+  const S = (m, ok) => { const el = document.getElementById("nc-status"); if(!el) return; el.textContent = m + " ("+at()+")"; el.style.color = ok ? "#0a7d00" : "#666"; };
+
+  function ensureData() {
+    try { if (typeof window.save === "function") window.save(); } catch (_) { }
+    if (!window.data || typeof window.data !== "object") window.data = {};
+    if (!window.data.__meta) window.data.__meta = {};
+    window.data.__meta.updatedAt = new Date().toISOString();
+    return window.data;
+  }
+
+  async function centralGET() {
+    const r = await fetch(withKey(LONG_URI), { method: "GET", cache: "no-cache" });
+    if (!r.ok) throw new Error("GET " + r.status + " — " + (await r.text()).slice(0, 200));
+    return r.json();
+  }
+
+  async function centralPUT(obj) {
+    const body = JSON.stringify(obj);
+    const r = await fetch(withKey(LONG_URI), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body,
+      cache: "no-store"
+    });
+    if (!r.ok) throw new Error("PUT " + r.status + " — " + (await r.text()).slice(0, 200));
+    return true;
+  }
+
+  function applyState(remote) {
+    if (remote && typeof remote === "object") {
+      window.data = remote;
+      try { if (typeof window.refreshActivePage === "function") window.refreshActivePage(); } catch (_) { }
+      try { if (typeof window.render === "function") window.render(); } catch (_) { }
+    }
+  }
+
+  // Actions
+  async function doPull() {
+    try { S("Lecture…"); const j = await centralGET(); applyState(j); S("Chargé", true); }
+    catch (e) { console.warn(e); S("Échec lecture — " + (e.message || e)); }
+  }
+  async function doPush() {
+    if (location.protocol === "file:") { S("Ouvrez en HTTPS (GitHub Pages)"); return; }
+    try { S("Préparation…"); const d = ensureData(); S("Écriture…"); await centralPUT(d); S("Enregistré ✅", true); }
+    catch (e) { console.warn(e); S("Échec écriture — " + (e.message || e)); }
+  }
+
+  // Bind boutons
+  document.addEventListener("DOMContentLoaded", () => {
+    const loadBtn = document.getElementById("nc-load");
+    const saveBtn = document.getElementById("nc-save");
+    if (loadBtn) loadBtn.addEventListener("click", doPull);
+    if (saveBtn) saveBtn.addEventListener("click", doPush);
+
+    // Lecture initiale au démarrage
+    doPull().catch(()=>{});
+  });
+
+  // Expose API si besoin
+  window.neptuneCentral = {
+    pull: () => doPull(),
+    push: () => doPush()
+  };
+})();
+</script>
+<!-- === /Neptune: Sauvegarde JSON central === -->
+
+</body></html>
+<script>
+(function(){"use strict";
+  const FIXED_URI_FINAL = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const API_KEY_FINAL   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+  const LS_OVERRIDE     = "neptune-central-override-uri";
+
+  let currentUri = localStorage.getItem(LS_OVERRIDE) || FIXED_URI_FINAL;
+  let inflight = false;
+  let cooldownUntil = 0;
+
+  function now(){ return Date.now(); }
+  function leftSec(){ return Math.max(0, Math.ceil((cooldownUntil - now())/1000)); }
+  function status(msg){ const el=document.getElementById('simpleSaveStatus'); if(el) el.textContent = msg + " ("+new Date().toLocaleTimeString()+")"; console.log("[push-final]", msg); }
+  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
+  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
+  function parseRetryAfter(h){ if(!h) return 0; const s=parseInt(h,10); if(!isNaN(s)) return s*1000; const t=Date.parse(h); if(!isNaN(t)) return Math.max(0,t-now()); return 0; }
+
+  async function ensureCentral(){
+    const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+    let r = await fetch(u, {method:'GET', cache:'no-cache'});
+    if(r.status===404) {
+      status("Central introuvable — création d'un nouveau…");
+      const createUrl='https://api.jsonstorage.net/v1/json?apiKey='+encodeURIComponent(API_KEY_FINAL);
+      const rc=await fetch(createUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+      if(!rc.ok){ const t=await rc.text().catch(()=>'' ); throw new Error('POST '+rc.status+' — '+t.slice(0,200)); }
+      const j=await rc.json(); if(!j.uri) throw new Error('Réponse inattendue');
+      currentUri = j.uri; localStorage.setItem(LS_OVERRIDE, currentUri);
+      status("Nouveau central prêt");
+      return;
+    }
+    if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('GET '+r.status+' — '+t.slice(0,200)); }
+  }
+
+  async function pushNow(){
+    if(inflight){ status('Un envoi est déjà en cours…'); return; }
+    if(now() < cooldownUntil){ status('Limite atteinte — réessayez dans '+leftSec()+'s'); return; }
+    inflight = true;
+    const btn = document.getElementById('btnSimplePush'); if(btn) btn.disabled = true;
+    try{
+      if(typeof window.save==='function') window.save();
+      stamp();
+      await ensureCentral();
+      const body = JSON.stringify(window.data||{});
+      const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+      status('Envoi en cours…');
+      const r = await fetch(u, {method:'PUT', headers:{'Content-Type':'application/json'}, body});
+      if(!r.ok){ const t=await r.text().catch(()=>'' ); const ra=r.headers&&r.headers.get?r.headers.get('Retry-After'):null; const backoff=r.status===429?(parseRetryAfter(ra)||60000):0; if(backoff) cooldownUntil=now()+backoff; throw new Error('HTTP '+r.status+' — '+t.slice(0,200)+(backoff?(' — retry '+Math.ceil(backoff/1000)+'s'):'')+' — payload '+sizeKB+' Ko'); }
+      status('PUSH ok ('+sizeKB+' Ko)');
+      await r.json().catch(()=>null);
+    }catch(e){ console.warn(e); status('Échec écriture — '+(e.message||e)); }
+    finally{ inflight=false; if(btn) btn.disabled=false; }
+  }
+
+  async function pullNow(){
+    if(inflight) return;
+    try{
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+      const r = await fetch(u, {method:'GET', cache:'no-cache'});
+      if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('HTTP '+r.status+' — '+t.slice(0,200)); }
+      const remote = await r.json();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); status('Échec lecture — '+(e.message||e)); }
+  }
+
+  document.addEventListener('click', function(ev){
+    const n = ev.target && ev.target.closest ? ev.target.closest('#btnSimplePush, #btnSimplePull') : null;
+    if(!n) return;
+    ev.preventDefault();
+    if(n.id==='btnSimplePush') pushNow();
+    else if(n.id==='btnSimplePull') pullNow();
+  });
+
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>pullNow().catch(()=>{}); tick(); t=setInterval(tick, 5*60*1000); }
+  document.addEventListener('DOMContentLoaded', startTimer);
+})();
+</script>
