@@ -3580,10 +3580,28 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     return true;
   }
 
+  
   function applyState(remote) {
     if (remote && typeof remote === "object") {
+      // Remplace l'état global
       window.data = remote;
-      try { if (typeof window.refreshActivePage === "function") window.refreshActivePage(); } catch (_) { }
+      try { if (typeof data !== "undefined") { data = window.data; } } catch(_) {}
+      // Persiste localement (embed + localStorage) pour éviter les écarts multi-PC
+      try { if (typeof window.save === "function") window.save(); } catch(_) {}
+      // Rafraîchit toutes les vues importantes (meilleure couverture que refreshActivePage seul)
+      const fns = [
+        "refreshActivePage","renderAccueil","renderDataPage",
+        "renderPracs","renderInterns","renderRooms","renderSpecs",
+        "renderAbsRep","renderAbs","renderAbsIntern",
+        "renderGuards","renderGuardsIntern","renderOncalls",
+        "renderCalendar","renderWeekType","renderStats","renderStatsIntern","renderStatsAdvanced"
+      ];
+      for (const fn of fns) {
+        try { if (typeof window[fn] === "function") window[fn](); } catch (e) { /* ignore */ }
+      }
+    }
+  }
+
       try { if (typeof window.render === "function") window.render(); } catch (_) { }
     }
   }
