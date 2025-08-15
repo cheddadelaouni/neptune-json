@@ -43,8 +43,8 @@ nav button.active{background:#1a49ad;color:#fff;border-color:#3a60c7}
 .g4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:860px){.g2,.g3,.g4{grid-template-columns:1fr}}
 label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
-in,select,button{font-size:14px}
-in[type=text],in[type=number],select{width:100%;padding:9px 10px;border-radius:10px;border:1px solid #22408f;background:#0e2458;color:#eef6ff}
+input,select,button{font-size:14px}
+input[type=text],input[type=number],select{width:100%;padding:9px 10px;border-radius:10px;border:1px solid #22408f;background:#0e2458;color:#eef6ff}
 button{border-radius:10px;border:1px solid #2b4fb0;background:#13367a;color:#e7edff;padding:8px 11px;cursor:pointer}
 button.ghost{background:transparent;border-style:dashed;color:#cfe0ff}
 button.small{font-size:12px;padding:6px 8px}
@@ -113,11 +113,11 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
     <h2>Authentification</h2>
     <div class="row">
       <label>Identifiant</label>
-      <in id="authId" type="text" autocomplete="username" placeholder="Identifiant">
+      <input id="authId" type="text" autocomplete="username" placeholder="Identifiant">
     </div>
     <div class="row">
       <label>Code</label>
-      <in id="authCode" type="password" autocomplete="current-password" placeholder="Code">
+      <input id="authCode" type="password" autocomplete="current-password" placeholder="Code">
     </div>
     <div id="authErr" class="row">Identifiants incorrects.</div>
     <div class="row">
@@ -171,12 +171,12 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
         </div>
 
         <div class="controls">
-          <div class="item"><label>Filtrer par spécialité</label><div id="fSpecBox" class="grid g3"><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 182);"></span> NRD</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 193);"></span> NRI</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> Ostéo</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 195);"></span> Dig</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 120);"></span> Onco</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(78, 71, 209);"></span> Landerneau</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 76, 209);"></span> Médecine légale</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 81);"></span> CINAPS</label></div></div>
-          <div class="item"><label>Filtrer par praticien</label><div id="fPracBox" class="grid g3"><label><in type="checkbox"> AB</label><label><in type="checkbox"> ACR</label><label><in type="checkbox"> AF</label><label><in type="checkbox"> AP</label><label><in type="checkbox"> AS</label><label><in type="checkbox"> BD</label><label><in type="checkbox"> CC</label><label><in type="checkbox"> DBS</label><label><in type="checkbox"> FG</label><label><in type="checkbox"> GC</label><label><in type="checkbox"> JCG</label><label><in type="checkbox"> JLIM</label><label><in type="checkbox"> JO</label><label><in type="checkbox"> JP</label><label><in type="checkbox"> JRR</label><label><in type="checkbox"> KR</label><label><in type="checkbox"> LV</label><label><in type="checkbox"> MC</label><label><in type="checkbox"> MCEA</label><label><in type="checkbox"> MG</label><label><in type="checkbox"> MTAXIL</label><label><in type="checkbox"> NBA</label><label><in type="checkbox"> PLL</label><label><in type="checkbox"> RL</label><label><in type="checkbox"> SR</label><label><in type="checkbox"> TG</label><label><in type="checkbox"> TH</label><label><in type="checkbox"> YD</label></div></div>
+          <div class="item"><label>Filtrer par spécialité</label><div id="fSpecBox" class="grid g3"><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 182);"></span> NRD</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 193);"></span> NRI</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> Ostéo</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 195);"></span> Dig</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 120);"></span> Onco</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(78, 71, 209);"></span> Landerneau</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 76, 209);"></span> Médecine légale</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 81);"></span> CINAPS</label></div></div>
+          <div class="item"><label>Filtrer par praticien</label><div id="fPracBox" class="grid g3"><label><input type="checkbox"> AB</label><label><input type="checkbox"> ACR</label><label><input type="checkbox"> AF</label><label><input type="checkbox"> AP</label><label><input type="checkbox"> AS</label><label><input type="checkbox"> BD</label><label><input type="checkbox"> CC</label><label><input type="checkbox"> DBS</label><label><input type="checkbox"> FG</label><label><input type="checkbox"> GC</label><label><input type="checkbox"> JCG</label><label><input type="checkbox"> JLIM</label><label><input type="checkbox"> JO</label><label><input type="checkbox"> JP</label><label><input type="checkbox"> JRR</label><label><input type="checkbox"> KR</label><label><input type="checkbox"> LV</label><label><input type="checkbox"> MC</label><label><input type="checkbox"> MCEA</label><label><input type="checkbox"> MG</label><label><input type="checkbox"> MTAXIL</label><label><input type="checkbox"> NBA</label><label><input type="checkbox"> PLL</label><label><input type="checkbox"> RL</label><label><input type="checkbox"> SR</label><label><input type="checkbox"> TG</label><label><input type="checkbox"> TH</label><label><input type="checkbox"> YD</label></div></div>
         </div>
 
         <div class="sep"></div>
-        <div><label>Salles affichées</label><div id="roomChecks" class="grid g3"><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 136);"></span> IRM 11</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 133);"></span> IRM 12</label></div></div>
+        <div><label>Salles affichées</label><div id="roomChecks" class="grid g3"><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 136);"></span> IRM 11</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 133);"></span> IRM 12</label></div></div>
         <div class="hint" id="accHint"></div>
       </div>
     </div>
@@ -216,10 +216,10 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
             </div>
           </div>
     
-          <div class="item"><label>Inclure salles</label><div id="calRoomChecks" class="grid g3"><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 193, 71);"></span> IRM salle 11</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> IRM salle 12</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 76);"></span> IRM urg</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(117, 71, 209);"></span> Scanner 6</label></div></div>
-          <div class="item"><label>Filtre spécialité</label><div id="calSpecBox" class="grid g3"><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 182);"></span> NRD</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 193);"></span> NRI</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> Ostéo</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 195);"></span> Dig</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 120);"></span> Onco</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(78, 71, 209);"></span> Landerneau</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 76, 209);"></span> Médecine légale</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 81);"></span> CINAPS</label></div></div>
-          <div class="item"><label>Filtre praticien</label><div id="calPracBox" class="grid g3"><label><in type="checkbox"> MCEA</label><label><in type="checkbox"> DBS</label></div></div>
-          <div class="item"><label>Filtre interne</label><div id="calIntBox" class="grid g3"><label><in type="checkbox"> Dupont I.</label></div></div>
+          <div class="item"><label>Inclure salles</label><div id="calRoomChecks" class="grid g3"><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 193, 71);"></span> IRM salle 11</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> IRM salle 12</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 76);"></span> IRM urg</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(117, 71, 209);"></span> Scanner 6</label></div></div>
+          <div class="item"><label>Filtre spécialité</label><div id="calSpecBox" class="grid g3"><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 182);"></span> NRD</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 193);"></span> NRI</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> Ostéo</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 195);"></span> Dig</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 120);"></span> Onco</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(78, 71, 209);"></span> Landerneau</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 76, 209);"></span> Médecine légale</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 81);"></span> CINAPS</label></div></div>
+          <div class="item"><label>Filtre praticien</label><div id="calPracBox" class="grid g3"><label><input type="checkbox"> MCEA</label><label><input type="checkbox"> DBS</label></div></div>
+          <div class="item"><label>Filtre interne</label><div id="calIntBox" class="grid g3"><label><input type="checkbox"> Dupont I.</label></div></div>
         </div>
         <div id="calOut"><div class="cal"><div class="hd">Lun</div><div class="hd">Mar</div><div class="hd">Mer</div><div class="hd">Jeu</div><div class="hd">Ven</div><div class="hd">Sam</div><div class="hd">Dim</div><div class="cell"><div class="dt">28/08</div></div><div class="cell"><div class="dt">29/08</div></div><div class="cell"><div class="dt">30/08</div></div><div class="cell"><div class="dt">31/08</div></div><div class="cell"><div class="dt">01/08</div></div><div class="cell"><div class="dt">02/08</div></div><div class="cell"><div class="dt">03/08</div></div><div class="cell"><div class="dt">04/08</div></div><div class="cell"><div class="dt">05/08</div></div><div class="cell"><div class="dt">06/08</div></div><div class="cell"><div class="dt">07/08</div></div><div class="cell"><div class="dt">08/08</div></div><div class="cell"><div class="dt">09/08</div></div><div class="cell"><div class="dt">10/08</div></div><div class="cell"><div class="dt">11/08</div></div><div class="cell"><div class="dt">12/08</div></div><div class="cell"><div class="dt">13/08</div></div><div class="cell"><div class="dt">14/08</div></div><div class="cell"><div class="dt">15/08</div></div><div class="cell"><div class="dt">16/08</div></div><div class="cell"><div class="dt">17/08</div></div><div class="cell"><div class="dt">18/08</div></div><div class="cell"><div class="dt">19/08</div></div><div class="cell"><div class="dt">20/08</div></div><div class="cell"><div class="dt">21/08</div></div><div class="cell"><div class="dt">22/08</div></div><div class="cell"><div class="dt">23/08</div></div><div class="cell"><div class="dt">24/08</div></div><div class="cell"><div class="dt">25/08</div></div><div class="cell"><div class="dt">26/08</div></div><div class="cell"><div class="dt">27/08</div></div><div class="cell"><div class="dt">28/08</div></div><div class="cell"><div class="dt">29/08</div></div><div class="cell"><div class="dt">30/08</div></div><div class="cell"><div class="dt">31/08</div></div></div></div>
     </div>
@@ -236,7 +236,7 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
       <div class="card-b">
         <div class="controls">
           <div class="item"><label>Année</label><select id="ppYear"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
-          <div class="item"><label>Semaine (ISO)</label><in id="ppWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
+          <div class="item"><label>Semaine (ISO)</label><input id="ppWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
           <div class="item"><label>Praticien</label><select id="ppPrac"><option value="MCEA">MCEA</option><option value="DBS">DBS</option></select></div>
         </div>
       </div>
@@ -261,7 +261,7 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
       <div class="card-b">
         <div class="controls">
           <div class="item"><label>Année</label><select id="piYear"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
-          <div class="item"><label>Semaine (ISO)</label><in id="piWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
+          <div class="item"><label>Semaine (ISO)</label><input id="piWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
           <div class="item"><label>Interne</label><select id="piIntern"><option value="Dupont I.">Dupont I.</option></select></div>
         </div>
       </div>
@@ -292,7 +292,7 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
       <div class="card-b">
         <div class="controls">
           <div class="item"><label>Année</label><select id="absrepYear"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
-          <div class="item"><label>Semaine (ISO)</label><in id="absrepWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
+          <div class="item"><label>Semaine (ISO)</label><input id="absrepWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
           <div class="item"><label>Qui afficher</label>
             <div class="seg">
               <button id="absrepWhoBoth" class="active">Les deux</button>
@@ -300,8 +300,8 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
               <button id="absrepWhoIntern">Internes</button>
             </div>
           </div>
-          <div class="item"><label>Filtrer par spécialité</label><div id="absrepSpecBox" class="grid g3"><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 182);"></span> NRD</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 193);"></span> NRI</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> Ostéo</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 195);"></span> Dig</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 120);"></span> Onco</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(78, 71, 209);"></span> Landerneau</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 76, 209);"></span> Médecine légale</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 81);"></span> CINAPS</label></div></div>
-          <div class="item"><label>Limiter aux salles</label><div id="absrepRoomChecks" class="grid g3"><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 136);"></span> IRM 11</label><label><in type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 133);"></span> IRM 12</label></div></div>
+          <div class="item"><label>Filtrer par spécialité</label><div id="absrepSpecBox" class="grid g3"><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 182);"></span> NRD</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 193);"></span> NRI</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> Ostéo</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 195);"></span> Dig</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 120);"></span> Onco</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(78, 71, 209);"></span> Landerneau</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 76, 209);"></span> Médecine légale</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 81);"></span> CINAPS</label></div></div>
+          <div class="item"><label>Limiter aux salles</label><div id="absrepRoomChecks" class="grid g3"><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 136);"></span> IRM 11</label><label><input type="checkbox"><span class="chipDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 133);"></span> IRM 12</label></div></div>
         </div>
         <div id="absrepOut" class="table"><div class="table"><table><thead><tr><th>Jour</th><th>Heure</th><th>Salle</th><th>Spécialité</th><th>Chef</th><th>Interne</th><th>Actions</th></tr></thead><tbody><tr><td colspan="7">Aucune absence sur la sélection.</td></tr></tbody></table></div></div>
       </div>
@@ -344,7 +344,7 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
       <div class="card-b">
         <div class="controls">
           <div class="item"><label>Année</label><select id="absYear"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
-          <div class="item"><label>Semaine (ISO)</label><in id="absWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
+          <div class="item"><label>Semaine (ISO)</label><input id="absWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
         </div>
         <div id="absTable" class="table"><table data-name="Absences Praticiens S36"><thead><tr><th>Praticien</th><th>Lundi 01/09</th><th>Mardi 02/09</th><th>Mercredi 03/09</th><th>Jeudi 04/09</th><th>Vendredi 05/09</th></tr></thead><tbody><tr><td>AB</td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>ACR</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>AF</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>AP</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>AS</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>BD</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>CC</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>DBS</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>FG</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>GC</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>JCG</td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td></tr><tr><td>JLIM</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>JO</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>JP</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>JRR</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>KR</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>LV</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>MC</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>MCEA</td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>MG</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>MTAXIL</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>NBA</td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td><td><button style="background: rgb(53, 26, 26); color: rgb(255, 222, 222); border: 1px solid rgb(109, 50, 50);">ABS</button></td></tr><tr><td>PLL</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>RL</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>SR</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>TG</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>TH</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr><tr><td>YD</td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td><td><button>Présent</button></td></tr></tbody></table></div>
       </div>
@@ -357,7 +357,7 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
       <div class="card-b">
         <div class="controls">
           <div class="item"><label>Année</label><select id="absIYear"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
-          <div class="item"><label>Semaine (ISO)</label><in id="absIWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
+          <div class="item"><label>Semaine (ISO)</label><input id="absIWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
         </div>
         <div id="absITable" class="table"><table data-name="Absences Internes S36"><thead><tr><th>Interne</th><th>Lundi 01/09</th><th>Mardi 02/09</th><th>Mercredi 03/09</th><th>Jeudi 04/09</th><th>Vendredi 05/09</th></tr></thead><tbody></tbody></table></div>
       </div>
@@ -374,7 +374,7 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
       <div class="card-b">
         <div class="controls">
           <div class="item"><label>Année</label><select id="gdYear"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
-          <div class="item"><label>Semaine (ISO)</label><in id="gdWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
+          <div class="item"><label>Semaine (ISO)</label><input id="gdWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
         </div>
         <div id="gdTable" class="table"><table data-name="Gardes Praticiens S36"><thead><tr><th>Jour</th><th>Praticien de garde</th></tr></thead><tbody><tr><td>Lundi 01/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Mardi 02/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Mercredi 03/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Jeudi 04/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Vendredi 05/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Samedi 06/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Dimanche 07/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr></tbody></table></div>
       </div>
@@ -387,7 +387,7 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
       <div class="card-b">
         <div class="controls">
           <div class="item"><label>Année</label><select id="gdIYear"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
-          <div class="item"><label>Semaine (ISO)</label><in id="gdIWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
+          <div class="item"><label>Semaine (ISO)</label><input id="gdIWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
         </div>
         <div id="gdITable" class="table"><table data-name="Gardes Internes S36"><thead><tr><th>Jour</th><th>Interne de garde</th></tr></thead><tbody><tr><td>Lundi 01/09</td><td><select><option value="">—</option></select><span class="tag warn" style="margin-left: 8px; display: none;">INTERNE ABSENT</span></td></tr><tr><td>Mardi 02/09</td><td><select><option value="">—</option></select><span class="tag warn" style="margin-left: 8px; display: none;">INTERNE ABSENT</span></td></tr><tr><td>Mercredi 03/09</td><td><select><option value="">—</option></select><span class="tag warn" style="margin-left: 8px; display: none;">INTERNE ABSENT</span></td></tr><tr><td>Jeudi 04/09</td><td><select><option value="">—</option></select><span class="tag warn" style="margin-left: 8px; display: none;">INTERNE ABSENT</span></td></tr><tr><td>Vendredi 05/09</td><td><select><option value="">—</option></select><span class="tag warn" style="margin-left: 8px; display: none;">INTERNE ABSENT</span></td></tr><tr><td>Samedi 06/09</td><td><select><option value="">—</option></select><span class="tag warn" style="margin-left: 8px; display: none;">INTERNE ABSENT</span></td></tr><tr><td>Dimanche 07/09</td><td><select><option value="">—</option></select><span class="tag warn" style="margin-left: 8px; display: none;">INTERNE ABSENT</span></td></tr></tbody></table></div>
       </div>
@@ -405,7 +405,7 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
     <div class="card-b">
       <div class="controls">
         <div class="item"><label>Année</label><select id="ocYear"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
-        <div class="item"><label>Semaine (ISO)</label><in id="ocWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
+        <div class="item"><label>Semaine (ISO)</label><input id="ocWeek" type="number" min="1" max="53" value="36" style="width:120px"></div>
       </div>
       <div id="ocTableNRI" class="table"><div class="table"><table data-name="Astreinte NRI S36"><thead><tr><th>Jour</th><th>Praticien d'astreinte</th></tr></thead><tbody><tr><td>Lundi 01/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Mardi 02/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Mercredi 03/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Jeudi 04/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Vendredi 05/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Samedi 06/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr><tr><td>Dimanche 07/09</td><td><select><option value="">—</option><option value="AB">AB</option><option value="ACR">ACR</option><option value="AF">AF</option><option value="AP">AP</option><option value="AS">AS</option><option value="BD">BD</option><option value="CC">CC</option><option value="DBS">DBS</option><option value="FG">FG</option><option value="GC">GC</option><option value="JCG">JCG</option><option value="JLIM">JLIM</option><option value="JO">JO</option><option value="JP">JP</option><option value="JRR">JRR</option><option value="KR">KR</option><option value="LV">LV</option><option value="MC">MC</option><option value="MCEA">MCEA</option><option value="MG">MG</option><option value="MTAXIL">MTAXIL</option><option value="NBA">NBA</option><option value="PLL">PLL</option><option value="RL">RL</option><option value="SR">SR</option><option value="TG">TG</option><option value="TH">TH</option><option value="YD">YD</option></select><span class="tag err" style="margin-left: 8px; display: none;">ABSENT ce jour</span></td></tr></tbody></table></div></div>
       <div class="hint">Seuls les praticiens avec la spécialité <b>NRI</b> sont proposés. S'il n'y en a pas dans les données, toute la liste est affichée.</div>
@@ -431,9 +431,9 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
       <div class="card-h"><div>Données</div></div>
       <div class="subtabs" id="dataSubtabs"><button class="active">Praticiens</button><button class="">Internes</button><button class="">Salles</button><button class="">Spécialités</button></div>
       <div class="card-b">
-        <section id="data-prats" class=""><div class="card-b"><div id="prList"><div class="card"><div class="card-h">AB</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">ACR</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">AF</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">AP</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">AS</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">BD</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">CC</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">DBS</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">FG</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">GC</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">JCG</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">JLIM</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">JO</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">JP</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">JRR</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">KR</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">LV</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">MC</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">MCEA</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">MG</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">MTAXIL</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">NBA</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">PLL</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">RL</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">SR</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">TG</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">TH</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">YD</div><div class="card-b"><label><in type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><in type="checkbox"> NRD</label><label><in type="checkbox"> NRI</label><label><in type="checkbox"> Ostéo</label><label><in type="checkbox"> Dig</label><label><in type="checkbox"> Onco</label><label><in type="checkbox"> Landerneau</label><label><in type="checkbox"> Médecine légale</label><label><in type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div></div></div><div class="card-b"><in id="prNew" type="text" placeholder="Nom (ex: MCEA)"> <button id="prAdd">Ajouter</button></div></section>
+        <section id="data-prats" class=""><div class="card-b"><div id="prList"><div class="card"><div class="card-h">AB</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">ACR</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">AF</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">AP</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">AS</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">BD</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">CC</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">DBS</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">FG</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">GC</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">JCG</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">JLIM</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">JO</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">JP</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">JRR</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">KR</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">LV</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">MC</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">MCEA</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">MG</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">MTAXIL</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">NBA</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">PLL</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">RL</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">SR</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">TG</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">TH</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">YD</div><div class="card-b"><label><input type="checkbox"> CINAPS</label><div></div><div>Spécialités :</div><label><input type="checkbox"> NRD</label><label><input type="checkbox"> NRI</label><label><input type="checkbox"> Ostéo</label><label><input type="checkbox"> Dig</label><label><input type="checkbox"> Onco</label><label><input type="checkbox"> Landerneau</label><label><input type="checkbox"> Médecine légale</label><label><input type="checkbox"> CINAPS</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div></div></div><div class="card-b"><input id="prNew" type="text" placeholder="Nom (ex: MCEA)"> <button id="prAdd">Ajouter</button></div></section>
         <section id="data-interns" class="hidden"></section>
-        <section id="data-rooms" class="hidden"><div class="card-b"><div id="rmList"><div class="card"><div class="card-h">IRM 11</div><div class="card-b"><div>Spécialités autorisées :</div><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 182);"></span> NRD</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 193);"></span> NRI</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> Ostéo</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 195);"></span> Dig</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 120);"></span> Onco</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(78, 71, 209);"></span> Landerneau</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 76, 209);"></span> Médecine légale</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 81);"></span> CINAPS</label><div></div><label><in type="checkbox"> Remplaçable par Téléradiologie</label><label><in type="checkbox"> Remplaçable par CINAPS (NRD)</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">IRM 12</div><div class="card-b"><div>Spécialités autorisées :</div><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 182);"></span> NRD</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 193);"></span> NRI</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> Ostéo</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 195);"></span> Dig</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 120);"></span> Onco</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(78, 71, 209);"></span> Landerneau</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 76, 209);"></span> Médecine légale</label><label><in type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 81);"></span> CINAPS</label><div></div><label><in type="checkbox"> Remplaçable par Téléradiologie</label><label><in type="checkbox"> Remplaçable par CINAPS (NRD)</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div></div></div><div class="card-b"><in id="rmNew" type="text" placeholder="ex: IRM salle 13"> <button id="rmAdd">Ajouter</button></div></section>
+        <section id="data-rooms" class="hidden"><div class="card-b"><div id="rmList"><div class="card"><div class="card-h">IRM 11</div><div class="card-b"><div>Spécialités autorisées :</div><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 182);"></span> NRD</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 193);"></span> NRI</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> Ostéo</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 195);"></span> Dig</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 120);"></span> Onco</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(78, 71, 209);"></span> Landerneau</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 76, 209);"></span> Médecine légale</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 81);"></span> CINAPS</label><div></div><label><input type="checkbox"> Remplaçable par Téléradiologie</label><label><input type="checkbox"> Remplaçable par CINAPS (NRD)</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div><div class="card"><div class="card-h">IRM 12</div><div class="card-b"><div>Spécialités autorisées :</div><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 182);"></span> NRD</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 209, 193);"></span> NRI</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 195, 71);"></span> Ostéo</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 195);"></span> Dig</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 120);"></span> Onco</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(78, 71, 209);"></span> Landerneau</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(71, 76, 209);"></span> Médecine légale</label><label><input type="checkbox"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0px 6px; border: 1px solid rgba(255, 255, 255, 0.6); background: rgb(209, 71, 81);"></span> CINAPS</label><div></div><label><input type="checkbox"> Remplaçable par Téléradiologie</label><label><input type="checkbox"> Remplaçable par CINAPS (NRD)</label><div></div><button class="ghost">Renommer</button> <button class="ghost">Supprimer</button></div></div></div></div><div class="card-b"><input id="rmNew" type="text" placeholder="ex: IRM salle 13"> <button id="rmAdd">Ajouter</button></div></section>
         <section id="data-specs" class="hidden"></section>
       </div>
     </div>
@@ -446,7 +446,7 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
         <div>Stats praticiens — semaine</div>
         <div><button id="btnExportStP" class="small ghost" style="display:none">Exporter CSV</button></div>
       </div>
-      <div class="card-b"><div class="controls"><div class="item"><label>Semaine</label><in id="stWeek" type="number" min="1" max="53" value="36" style="width:120px"></div></div><div id="stTable" class="table"><table data-name="Stats Praticiens S36"><thead><tr><th>Praticien</th><th>Lun</th><th>Mar</th><th>Mer</th><th>Jeu</th><th>Ven</th><th>Total</th></tr></thead><tbody><tr><td>AB</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>ACR</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>AF</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>AP</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>AS</td><td>4</td><td>0</td><td>0</td><td>0</td><td>0</td><td>4</td></tr><tr><td>BD</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>CC</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>DBS</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>FG</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>GC</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>JCG</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>JLIM</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>JO</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>JP</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>JRR</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>KR</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>LV</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>MC</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>MCEA</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>MG</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>MTAXIL</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>NBA</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>PLL</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>RL</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>SR</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>TG</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>TH</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>YD</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div></div>
+      <div class="card-b"><div class="controls"><div class="item"><label>Semaine</label><input id="stWeek" type="number" min="1" max="53" value="36" style="width:120px"></div></div><div id="stTable" class="table"><table data-name="Stats Praticiens S36"><thead><tr><th>Praticien</th><th>Lun</th><th>Mar</th><th>Mer</th><th>Jeu</th><th>Ven</th><th>Total</th></tr></thead><tbody><tr><td>AB</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>ACR</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>AF</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>AP</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>AS</td><td>4</td><td>0</td><td>0</td><td>0</td><td>0</td><td>4</td></tr><tr><td>BD</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>CC</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>DBS</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>FG</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>GC</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>JCG</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>JLIM</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>JO</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>JP</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>JRR</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>KR</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>LV</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>MC</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>MCEA</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>MG</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>MTAXIL</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>NBA</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>PLL</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>RL</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>SR</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>TG</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>TH</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>YD</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div></div>
     </div>
 
     <div class="card">
@@ -454,7 +454,7 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
         <div>Stats internes — semaine</div>
         <div><button id="btnExportStI" class="small ghost" style="display:none">Exporter CSV</button></div>
       </div>
-      <div class="card-b"><div class="controls"><div class="item"><label>Semaine</label><in id="stIWeek" type="number" min="1" max="53" value="36" style="width:120px"></div></div><div id="stITable" class="table"><table data-name="Stats Internes S36"><thead><tr><th>Interne</th><th>Lun</th><th>Mar</th><th>Mer</th><th>Jeu</th><th>Ven</th><th>Total</th></tr></thead><tbody></tbody></table></div></div>
+      <div class="card-b"><div class="controls"><div class="item"><label>Semaine</label><input id="stIWeek" type="number" min="1" max="53" value="36" style="width:120px"></div></div><div id="stITable" class="table"><table data-name="Stats Internes S36"><thead><tr><th>Interne</th><th>Lun</th><th>Mar</th><th>Mer</th><th>Jeu</th><th>Ven</th><th>Total</th></tr></thead><tbody></tbody></table></div></div>
     </div>
 
     <div class="card">
@@ -471,7 +471,7 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
               <option value="month">Mois</option>
             </select>
           </div>
-          <div class="item" id="ctlWeek"><label>Semaine (ISO)</label><in id="stAdvWeek" type="number" min="1" max="53" value="36"></div>
+          <div class="item" id="ctlWeek"><label>Semaine (ISO)</label><input id="stAdvWeek" type="number" min="1" max="53" value="36"></div>
           <div class="item hidden" id="ctlDay">
             <label>Jour (lun→ven)</label>
             <select id="stAdvDay">
@@ -508,7 +508,35 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
   </section>
 
   <!-- Sauvegarde -->
+  <section id="page-save" class="">
+    <div class="card"><div class="card-h"><div>Sauvegarde</div></div>
+      <div class="card-b"><button id="btnExport" class="ghost">Exporter JSON</button>
+        <input id="fileImport" type="file" accept="application/json">
+        <button id="btnImport">Importer JSON</button>
+        <button id="btnReset" class="ghost" style="margin-left:10px">Réinitialiser</button>
+        <hr class="soft">
+        <div class="small">Enregistrer <b>directement dans ce fichier HTML</b> (nécessite Chrome/Edge récents).</div>
+        <div class="controls">
+          <button id="btnPickHtml">Choisir ce fichier pour l'autosauvegarde</button>
+          <button id="btnSaveHtmlNow" class="ghost">Enregistrer maintenant</button>
+        </div>
+        <div class="hint" id="saveHint">Autosauvegarde activée sur ce fichier.</div></div>
+    </div>
   
+    <!-- Neptune: bloc de sauvegarde centralisée (JsonStorage) -->
+    <div class="card" id="simpleSaveWrap">
+      <div class="card-h"><div>Sauvegarde centralisée (JsonStorage)</div></div>
+      <div class="card-b">
+        <div class="controls">
+          <button id="btnSimplePull" type="button" class="ghost">← Recharger</button>
+          <button id="btnSimplePush" type="button">Pousser →</button>
+          <span class="small" style="margin-left:10px">Autosync 5 min</span>
+        </div>
+        <div class="hint" id="simpleSaveStatus">—</div>
+      </div>
+    </div>
+
+  </section>
 </div>
 
 <script>
@@ -883,7 +911,7 @@ document.addEventListener('DOMContentLoaded', enhanceSavePageUI);
         ? (data.absencesIntern[W] && (data.absencesIntern[W][DAYS[dayIdx]][name] || isRestAfterGuardIntern(week,dayIdx,name)))
         : (data.absences[W] && (data.absences[W][DAYS[dayIdx]][name] || isRestAfterGuard(week,dayIdx,name)));
       if(candAbsent) continue;
-      // come parallel segments for this candidate
+      // compute parallel segments for this candidate
       var parallels = isIntern
         ? getParallelSegmentsForIntern(week, name, dayIdx, seg.start, seg.end, roomIdx)
         : getParallelSegmentsForPrac(week, name, dayIdx, seg.start, seg.end, roomIdx);
@@ -1044,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', enhanceSavePageUI);
     var boxes=[];
     for(var i=0;i<items.length;i++){
       (function(it){
-        var lab=document.createElement('label'); var box=document.createElement('in'); box.type='checkbox'; box.checked=!!checkedAll;
+        var lab=document.createElement('label'); var box=document.createElement('input'); box.type='checkbox'; box.checked=!!checkedAll;
         lab.appendChild(box);
         // color chip if specialty
         if(typeof it==='string'){
@@ -2363,7 +2391,7 @@ tdSeg.appendChild(line);
     var box=el('div', {class:'card-b'});
     var add=el('div', {class:'grid g3'});
     add.appendChild(el('div',null,''));
-    var inp=document.createElement('in'); inp.id='spNew'; inp.type='text'; inp.placeholder='ex: NRD';
+    var inp=document.createElement('input'); inp.id='spNew'; inp.type='text'; inp.placeholder='ex: NRD';
     var btn=document.createElement('button'); btn.id='spAdd'; btn.textContent='Ajouter spécialité';
     var col2=el('div',null,''); col2.appendChild(inp); var col3=el('div',null,''); col3.appendChild(btn);
     add.appendChild(col2); add.appendChild(col3);
@@ -2396,13 +2424,13 @@ tdSeg.appendChild(line);
             var f = (data.specFlags && data.specFlags[specName]) || {tele:false, cinaps:false};
 
             var lbT = document.createElement('label'); lbT.style.marginLeft='8px';
-            var ckT = document.createElement('in'); ckT.type='checkbox'; ckT.checked=!!f.tele;
+            var ckT = document.createElement('input'); ckT.type='checkbox'; ckT.checked=!!f.tele;
             ckT.onchange=function(){ setSpecFlag(specName, 'tele', this.checked); };
             lbT.appendChild(ckT); lbT.appendChild(document.createTextNode(' Téléradiologie'));
             row.appendChild(lbT);
 
             var lbC = document.createElement('label'); lbC.style.marginLeft='8px';
-            var ckC = document.createElement('in'); ckC.type='checkbox'; ckC.checked=!!f.cinaps;
+            var ckC = document.createElement('input'); ckC.type='checkbox'; ckC.checked=!!f.cinaps;
             ckC.onchange=function(){ setSpecFlag(specName, 'cinaps', this.checked); };
             lbC.appendChild(ckC); lbC.appendChild(document.createTextNode(' CINAPS'));
             row.appendChild(lbC);
@@ -2427,11 +2455,11 @@ tdSeg.appendChild(line);
         (function(idx){
           var p=data.practitioners[idx]; var card=el('div',{class:'card'}); card.appendChild(el('div',{class:'card-h'}, p.name));
           var b=el('div',{class:'card-b'});
-          var ck=document.createElement('in'); ck.type='checkbox'; ck.checked=p.cinaps; ck.onchange=function(){ p.cinaps=ck.checked; save(); };
+          var ck=document.createElement('input'); ck.type='checkbox'; ck.checked=p.cinaps; ck.onchange=function(){ p.cinaps=ck.checked; save(); };
           var lab=document.createElement('label'); lab.appendChild(ck); lab.appendChild(document.createTextNode(' CINAPS'));
           b.appendChild(lab); b.appendChild(document.createElement('div'));
           b.appendChild(el('div',null,'Spécialités :'));
-          for(var s=0;s<data.specialties.length;s++){ (function(S){ var lb=document.createElement('label'); var c=document.createElement('in'); c.type='checkbox'; c.checked=(p.specs||[]).indexOf(S)>=0; c.onchange=function(){ var pos=(p.specs||[]).indexOf(S); if(c.checked){ if(pos<0){ (p.specs=p.specs||[]).push(S);} } else { if(pos>=0){ p.specs.splice(pos,1);} } save(); }; lb.appendChild(c); lb.appendChild(document.createTextNode(' '+S)); b.appendChild(lb); })(data.specialties[s]); }
+          for(var s=0;s<data.specialties.length;s++){ (function(S){ var lb=document.createElement('label'); var c=document.createElement('input'); c.type='checkbox'; c.checked=(p.specs||[]).indexOf(S)>=0; c.onchange=function(){ var pos=(p.specs||[]).indexOf(S); if(c.checked){ if(pos<0){ (p.specs=p.specs||[]).push(S);} } else { if(pos>=0){ p.specs.splice(pos,1);} } save(); }; lb.appendChild(c); lb.appendChild(document.createTextNode(' '+S)); b.appendChild(lb); })(data.specialties[s]); }
           var ren=el('button',{class:'ghost'},'Renommer');
           ren.onclick=function(){
             var oldName=p.name;
@@ -2451,7 +2479,7 @@ tdSeg.appendChild(line);
       }
     }
     var addRow=el('div',{class:'card-b'});
-    var inp=document.createElement('in'); inp.id='prNew'; inp.type='text'; inp.placeholder='Nom (ex: MCEA)';
+    var inp=document.createElement('input'); inp.id='prNew'; inp.type='text'; inp.placeholder='Nom (ex: MCEA)';
     var btn=document.createElement('button'); btn.id='prAdd'; btn.textContent='Ajouter';
     addRow.appendChild(inp); addRow.appendChild(document.createTextNode(' ')); addRow.appendChild(btn);
     host.appendChild(addRow);
@@ -2470,7 +2498,7 @@ tdSeg.appendChild(line);
           var p=data.interns[idx]; var card=el('div',{class:'card'}); card.appendChild(el('div',{class:'card-h'}, p.name));
           var b=el('div',{class:'card-b'});
           b.appendChild(el('div',null,'Spécialités :'));
-          for(var s=0;s<data.specialties.length;s++){ (function(S){ var lb=document.createElement('label'); var c=document.createElement('in'); c.type='checkbox'; c.checked=(p.specs||[]).indexOf(S)>=0; c.onchange=function(){ var pos=(p.specs||[]).indexOf(S); if(c.checked){ if(pos<0){ (p.specs=p.specs||[]).push(S);} } else { if(pos>=0){ p.specs.splice(pos,1);} } save(); }; lb.appendChild(c); lb.appendChild(document.createTextNode(' '+S)); b.appendChild(lb); })(data.specialties[s]); }
+          for(var s=0;s<data.specialties.length;s++){ (function(S){ var lb=document.createElement('label'); var c=document.createElement('input'); c.type='checkbox'; c.checked=(p.specs||[]).indexOf(S)>=0; c.onchange=function(){ var pos=(p.specs||[]).indexOf(S); if(c.checked){ if(pos<0){ (p.specs=p.specs||[]).push(S);} } else { if(pos>=0){ p.specs.splice(pos,1);} } save(); }; lb.appendChild(c); lb.appendChild(document.createTextNode(' '+S)); b.appendChild(lb); })(data.specialties[s]); }
           var ren=el('button',{class:'ghost'},'Renommer');
           ren.onclick=function(){
             var oldName=p.name;
@@ -2490,7 +2518,7 @@ tdSeg.appendChild(line);
       }
     }
     var addRow=el('div',{class:'card-b'});
-    var inp=document.createElement('in'); inp.id='intNew'; inp.type='text'; inp.placeholder='Nom (ex: Dupont I.)';
+    var inp=document.createElement('input'); inp.id='intNew'; inp.type='text'; inp.placeholder='Nom (ex: Dupont I.)';
     var btn=document.createElement('button'); btn.id='intAdd'; btn.textContent='Ajouter';
     addRow.appendChild(inp); addRow.appendChild(document.createTextNode(' ')); addRow.appendChild(btn);
     host.appendChild(addRow);
@@ -2509,16 +2537,16 @@ tdSeg.appendChild(line);
           var r=data.rooms[idx]; var card=el('div',{class:'card'}); card.appendChild(el('div',{class:'card-h'}, r.name));
           var b=el('div',{class:'card-b'});
           b.appendChild(el('div',null,'Spécialités autorisées :'));
-          for(var s=0;s<data.specialties.length;s++){ (function(S){ var lb=document.createElement('label'); var c=document.createElement('in'); c.type='checkbox'; c.checked=(r.allow||[]).indexOf(S)>=0; c.onchange=function(){ var pos=(r.allow||[]).indexOf(S); if(c.checked){ if(pos<0){ (r.allow=r.allow||[]).push(S);} } else { if(pos>=0){ r.allow.splice(pos,1);} } save(); }; lb.appendChild(c); var dot=el('span'); dot.style.display='inline-block'; dot.style.width='10px'; dot.style.height='10px'; dot.style.borderRadius='50%'; dot.style.margin='0 6px'; dot.style.border='1px solid rgba(255,255,255,.6)'; dot.style.background=specColor(S); lb.appendChild(dot); lb.appendChild(document.createTextNode(' '+S)); b.appendChild(lb); })(data.specialties[s]); }
+          for(var s=0;s<data.specialties.length;s++){ (function(S){ var lb=document.createElement('label'); var c=document.createElement('input'); c.type='checkbox'; c.checked=(r.allow||[]).indexOf(S)>=0; c.onchange=function(){ var pos=(r.allow||[]).indexOf(S); if(c.checked){ if(pos<0){ (r.allow=r.allow||[]).push(S);} } else { if(pos>=0){ r.allow.splice(pos,1);} } save(); }; lb.appendChild(c); var dot=el('span'); dot.style.display='inline-block'; dot.style.width='10px'; dot.style.height='10px'; dot.style.borderRadius='50%'; dot.style.margin='0 6px'; dot.style.border='1px solid rgba(255,255,255,.6)'; dot.style.background=specColor(S); lb.appendChild(dot); lb.appendChild(document.createTextNode(' '+S)); b.appendChild(lb); })(data.specialties[s]); }
           
           // Options de remplacement par salle
           b.appendChild(document.createElement('div'));
-          var lbT=document.createElement('label'); var ckT=document.createElement('in'); ckT.type='checkbox'; ckT.checked=!!r.allowTele;
+          var lbT=document.createElement('label'); var ckT=document.createElement('input'); ckT.type='checkbox'; ckT.checked=!!r.allowTele;
           ckT.onchange=function(){ r.allowTele=!!this.checked; save(); };
           lbT.appendChild(ckT); lbT.appendChild(document.createTextNode(' Remplaçable par Téléradiologie'));
           b.appendChild(lbT);
 
-          var lbC=document.createElement('label'); var ckC=document.createElement('in'); ckC.type='checkbox'; ckC.checked=!!r.allowCinaps;
+          var lbC=document.createElement('label'); var ckC=document.createElement('input'); ckC.type='checkbox'; ckC.checked=!!r.allowCinaps;
           ckC.onchange=function(){ r.allowCinaps=!!this.checked; save(); };
           lbC.appendChild(ckC); lbC.appendChild(document.createTextNode(' Remplaçable par CINAPS (NRD)'));
           b.appendChild(lbC);
@@ -2541,7 +2569,7 @@ var ren=el('button',{class:'ghost'},'Renommer');
       }
     }
     var addRow=el('div',{class:'card-b'});
-    var inp=document.createElement('in'); inp.id='rmNew'; inp.type='text'; inp.placeholder='ex: IRM salle 13';
+    var inp=document.createElement('input'); inp.id='rmNew'; inp.type='text'; inp.placeholder='ex: IRM salle 13';
     var btn=document.createElement('button'); btn.id='rmAdd'; btn.textContent='Ajouter';
     addRow.appendChild(inp); addRow.appendChild(document.createTextNode(' ')); addRow.appendChild(btn);
     host.appendChild(addRow);
@@ -2727,10 +2755,10 @@ function practitionerNamesBySpec(spec){
     return names;
   }catch(e){ return (data.practitioners||[]).map(function(p){ return p.name; }); }
 }
-function buildOncallTable(containerId, yearSelId, weekInId, specKey, rangeSpanId, exportBtnId){
+function buildOncallTable(containerId, yearSelId, weekInputId, specKey, rangeSpanId, exportBtnId){
   buildYearSelect($(yearSelId), 2025);
   var y = parseInt($(yearSelId).value,10);
-  var w = $(weekInId);
+  var w = $(weekInputId);
   ensureWeek(parseInt(w.value,10));
   var dates = weekDates(y, parseInt(w.value,10));
   $(rangeSpanId).textContent = 'S'+pad2(parseInt(w.value,10))+' · '+fmtDate(dates[0])+' → '+fmtDate(dates[6])+' / '+y;
@@ -2769,8 +2797,8 @@ function buildOncallTable(containerId, yearSelId, weekInId, specKey, rangeSpanId
   // Export
   $(exportBtnId).onclick = function(){ exportTableCSV(tbl, 'Astreinte_'+specKey+'_S'+pad2(parseInt(w.value,10))+'.csv'); };
   // Reactivity
-  $(yearSelId).onchange = function(){ setWeekYear(parseInt($(weekInId).value,10), parseInt($(yearSelId).value,10)); buildOncallTable(containerId, yearSelId, weekInId, specKey, rangeSpanId, exportBtnId); };
-  w.onchange = function(){ ensureWeek(parseInt(w.value,10)); setWeekYear(parseInt(w.value,10), parseInt($(yearSelId).value,10)); buildOncallTable(containerId, yearSelId, weekInId, specKey, rangeSpanId, exportBtnId); };
+  $(yearSelId).onchange = function(){ setWeekYear(parseInt($(weekInputId).value,10), parseInt($(yearSelId).value,10)); buildOncallTable(containerId, yearSelId, weekInputId, specKey, rangeSpanId, exportBtnId); };
+  w.onchange = function(){ ensureWeek(parseInt(w.value,10)); setWeekYear(parseInt(w.value,10), parseInt($(yearSelId).value,10)); buildOncallTable(containerId, yearSelId, weekInputId, specKey, rangeSpanId, exportBtnId); };
 }
 function renderOncalls(){
   buildOncallTable('ocTableNRI','ocYear','ocWeek','NRI','ocRangeNRI','btnExportOcNRI');
@@ -2975,7 +3003,7 @@ function renderOncalls(){
         // Keep replacement UI blocked by can('chooseReplacement'); other edits are not present here.
         return;
       }
-var nodes = active.querySelectorAll('in, select, textarea, button');
+var nodes = active.querySelectorAll('input, select, textarea, button');
       for(var i=0;i<nodes.length;i++){
         var el = nodes[i];
         var id = el.id || '';
@@ -3005,8 +3033,20 @@ var nodes = active.querySelectorAll('in, select, textarea, button');
 
 <script>
 (function(){"use strict";
+  const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const LS_OVERRIDE = "neptune-central-override-uri";
+  let currentUri = (localStorage.getItem(LS_OVERRIDE) || FIXED_URI);
+  const API_KEY
 
-  const API_KEY   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+  // helper: create new central JSON
+  async function jsCreate(){
+    const url='https://api.jsonstorage.net/v1/json?apiKey='+encodeURIComponent(API_KEY);
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    if(!r.ok){ const t=await r.text().catch(()=>''); throw new Error('POST '+r.status+' — '+t.slice(0,200)); }
+    const j=await r.json(); if(!j.uri) throw new Error('Réponse inattendue');
+    return j.uri;
+  }
+   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
 
   function status(msg){
     const el = document.getElementById('simpleSaveStatus');
@@ -3015,18 +3055,45 @@ var nodes = active.querySelectorAll('in, select, textarea, button');
   function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
   function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
 
-  async function jsGet(){ 
-    let r = await fetch(FIXED_URI,{method:'GET',cache:'no-cache'});
-    if(r.status===401||r.status===403) r = await fetch(FIXED_URI+(FIXED_URI.includes('?')?'&':'?')+'='+encodeURIComponent(API_KEY),{method:'GET',cache:'no-cache'});
-    if(!r.ok) throw new Error('GET '+r.status);
+  async function jsGet(){
+  try{
+    let r = await fetch(currentUri,{method:'GET',cache:'no-cache'});
+    if(r.status===401||r.status===403){
+      r = await fetch(currentUri+(currentUri.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY),{method:'GET',cache:'no-cache'});
+    }
+    if(!r.ok){
+      const txt = await r.text().catch(()=>'');
+      throw new Error('HTTP '+r.status+' — '+txt.slice(0,200));
+    }
     return r.json();
+  }catch(e){ status('Échec lecture — '+(e.message||e)); throw e; }
+}
+  async function jsPut(obj){
+  // try primary push
+  const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+  const body = JSON.stringify(obj);
+  const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+  let r = await fetch(u, {method:'PUT', headers:{'Content-Type':'application/json'}, body});
+  if(r.ok){ status('PUSH ok ('+sizeKB+' Ko)'); return r.json(); }
+  const txt = await r.text().catch(()=>''), code=r.status;
+  // 404 -> auto-create a new item, store override, retry once
+  if(code===404){
+    try{
+      status('Central introuvable (404) — création d\'un nouveau…');
+      const newUri = await jsCreate();
+      currentUri = newUri; localStorage.setItem(LS_OVERRIDE, newUri);
+      const u2 = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+      r = await fetch(u2, {method:'PUT', headers:{'Content-Type':'application/json'}, body});
+      if(r.ok){ status('Nouveau central créé ✅ — PUSH ok ('+sizeKB+' Ko)'); return r.json(); }
+      const t2 = await r.text().catch(()=>'' ); throw new Error('HTTP '+r.status+' — '+t2.slice(0,200));
+    }catch(e){ throw e; }
   }
-  async function js(obj){ 
-    const u = FIXED_URI+(FIXED_URI.includes('?')?'&':'?')+'='+encodeURIComponent(API_KEY);
-    const r = await fetch(u,{method:'',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj,null,2)});
-    if(!r.ok) throw new Error(' '+r.status);
-    return r.json();
-  }
+  // other errors (429 etc.)
+  const ra = r.headers && r.headers.get ? r.headers.get('Retry-After') : null;
+  const backoff = code===429 ? (parseRetryAfter(ra)||60000) : 0;
+  if(backoff) __cooldownUntil = Date.now() + backoff;
+  throw new Error('HTTP '+code+' — '+txt.slice(0,200)+(backoff?(' — retry dans '+Math.ceil(backoff/1000)+'s'):'')+' — payload '+sizeKB+' Ko');
+}
 
   async function simplePull(){ 
     try{
@@ -3038,7 +3105,7 @@ var nodes = active.querySelectorAll('in, select, textarea, button');
     }catch(e){ console.warn(e); status('Échec lecture'); }
   }
   async function simplePush(){ 
-    try{ if(typeof window.save==='function') window.save(); stamp(); await js(window.data||{}); status('Données poussées'); }
+    try{ if(typeof window.save==='function') window.save(); stamp(); await jsPut(window.data||{}); status('Données poussées'); }
     catch(e){ console.warn(e); status('Échec écriture'); }
   }
 
@@ -3059,121 +3126,647 @@ var nodes = active.querySelectorAll('in, select, textarea, button');
 </script>
 
 
-<!-- === Neptune: Barre sauvegarde/chargement centrale (URI longue JsonStorage) === -->
-<div class="nc-bar" style="position:fixed;right:12px;bottom:12px;display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:8px 10px;z-index:99999">
-  <button id="nc-load" style="padding:6px 10px;border:1px solid #ddd;background:#f7f7f7;border-radius:8px;cursor:pointer">← Charger</button>
-  <button id="nc-save" style="padding:6px 10px;border:1px solid #1a7f37;background:#1a7f37;color:#fff;border-radius:8px;cursor:pointer">Enregistrer →</button>
-  <span id="nc-status" style="color:#333;margin-left:6px;font:13px system-ui">—</span>
+<script>
+(function(){"use strict";
+  const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const API_KEY   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+
+  // Push state & backoff
+  let __pushInflight = false;
+  let __cooldownUntil = 0;
+  function ms(){ return Date.now(); }
+  function secLeft(){ return Math.max(0, Math.ceil((__cooldownUntil - ms())/1000)); }
+  function parseRetryAfter(h){
+    if(!h) return 0;
+    const s = parseInt(h,10);
+    if(!isNaN(s)) return s*1000;
+    const t = Date.parse(h);
+    if(!isNaN(t)) return Math.max(0, t - ms());
+    return 0;
+  }
+
+  function status(msg){
+    const el = document.getElementById('simpleSaveStatus');
+    if(el) el.textContent = msg + " (" + new Date().toLocaleTimeString() + ")";
+  }
+  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
+  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
+
+  async function jsGet(){
+    try{
+      let r = await fetch(FIXED_URI,{method:'GET',cache:'no-cache'});
+      if(r.status===401||r.status===403){
+        r = await fetch(FIXED_URI+(FIXED_URI.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY),{method:'GET',cache:'no-cache'});
+      }
+      if(!r.ok){
+        const txt = await r.text().catch(()=>'');
+        throw new Error('HTTP '+r.status+' — '+txt.slice(0,200));
+      }
+      return r.json();
+    }catch(e){ status('Échec lecture — '+(e.message||e)); throw e; }
+  }
+
+  async function jsPut(obj){
+    const u = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+    const body = JSON.stringify(obj);
+    const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+    const r = await fetch(u, {method:'PUT', headers:{'Content-Type':'application/json'}, body});
+    if(!r.ok){
+      const txt = await r.text().catch(()=>'');
+      const ra = r.headers && r.headers.get ? r.headers.get('Retry-After') : null;
+      const backoff = r.status===429 ? (parseRetryAfter(ra)||60000) : 0;
+      if(backoff){ __cooldownUntil = ms() + backoff; }
+      throw new Error('HTTP '+r.status+' — '+txt.slice(0,200)+(backoff?(' — retry dans '+Math.ceil(backoff/1000)+'s'):'') );
+    }
+    status('PUSH ok ('+sizeKB+' Ko)');
+    return r.json();
+  }
+
+  async function simplePull(){
+    if(__pushInflight) return;
+    try{
+      const remote = await jsGet();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); }
+  }
+
+  async function simplePush(){
+    if(__pushInflight){ status('Un envoi est déjà en cours…'); return; }
+    if(ms() < __cooldownUntil){ status('Limite atteinte — réessayez dans '+secLeft()+'s'); return; }
+    __pushInflight = true;
+    try{
+      if(typeof window.save==='function') window.save();
+      stamp();
+      await jsPut(window.data||{});
+    }catch(e){ status('Échec écriture — '+(e.message||e)); console.warn(e); }
+    finally{ __pushInflight = false; }
+  }
+
+  function bind(){
+    const pull = document.getElementById('btnSimplePull');
+    const push = document.getElementById('btnSimplePush');
+    if(pull && !pull.__bound){ pull.__bound=true; pull.addEventListener('click', simplePull); }
+    if(push && !push.__bound){ push.__bound=true; push.addEventListener('click', simplePush); }
+  }
+
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>simplePull().catch(()=>{}); tick(); t=setInterval(tick,5*60*1000); }
+
+  document.addEventListener('DOMContentLoaded', function(){ bind(); startTimer(); });
+  const tabs = document.getElementById('tabs'); if(tabs) tabs.addEventListener('click', ()=>setTimeout(bind,0));
+})();
+</script>
+
+
+<script>
+(function(){"use strict";
+  const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const API_KEY   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+
+  let __pushInflight = false;
+  let __cooldownUntil = 0;
+
+  function ms(){ return Date.now(); }
+  function secLeft(){ return Math.max(0, Math.ceil((__cooldownUntil - ms())/1000)); }
+  function parseRetryAfter(h){
+    if(!h) return 0;
+    const s = parseInt(h,10);
+    if(!isNaN(s)) return s*1000;
+    const t = Date.parse(h);
+    if(!isNaN(t)) return Math.max(0, t - ms());
+    return 0;
+  }
+
+  function status(msg){
+    const el = document.getElementById('simpleSaveStatus');
+    if(el) el.textContent = msg + " (" + new Date().toLocaleTimeString() + ")";
+    console.log("[Neptune] "+msg);
+  }
+  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
+  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
+
+  async function jsGet(){
+    let r = await fetch(FIXED_URI,{method:'GET',cache:'no-cache'});
+    if(r.status===401||r.status===403) r = await fetch(FIXED_URI+(FIXED_URI.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY),{method:'GET',cache:'no-cache'});
+    if(!r.ok){ const txt = await r.text().catch(()=>'');
+      throw new Error('HTTP '+r.status+' — '+txt.slice(0,200)); }
+    return r.json();
+  }
+
+  async function jsPut(obj){
+    const u = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+    // compact body to reduce size vs 32KB limit
+    const body = JSON.stringify(obj);
+    const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+    const r = await fetch(u, {method:'PUT', headers:{'Content-Type':'application/json'}, body});
+    if(!r.ok){
+      const txt = await r.text().catch(()=>'');
+      const ra = r.headers && r.headers.get ? r.headers.get('Retry-After') : null;
+      const backoff = r.status===429 ? (parseRetryAfter(ra)||60000) : 0;
+      if(backoff) __cooldownUntil = ms() + backoff;
+      throw new Error('HTTP '+r.status+' — '+txt.slice(0,200)+(backoff?(' — retry dans '+Math.ceil(backoff/1000)+'s'):'')+' — payload '+sizeKB+' Ko');
+    }
+    status('PUSH ok ('+sizeKB+' Ko)');
+    return r.json();
+  }
+
+  async function simplePull(){
+    if(__pushInflight) return;
+    try{
+      const remote = await jsGet();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); status('Échec lecture — '+(e.message||e)); }
+  }
+
+  async function simplePush(){
+    if(__pushInflight){ status('Un envoi est déjà en cours…'); return; }
+    if(ms() < __cooldownUntil){ status('Limite atteinte — réessayez dans '+secLeft()+'s'); return; }
+    __pushInflight = true;
+    const btn = document.getElementById('btnSimplePush'); if(btn) btn.disabled = true;
+    try{
+      if(typeof window.save==='function') window.save();
+      stamp();
+      status('Envoi en cours…');
+      await jsPut(window.data||{});
+    }catch(e){ console.warn(e); status('Échec écriture — '+(e.message||e)); }
+    finally{ __pushInflight = false; if(btn) btn.disabled = false; }
+  }
+
+  // Event delegation: works even if the page re-rend la section
+  document.addEventListener('click', function(ev){
+    const push = ev.target && ev.target.closest && ev.target.closest('#btnSimplePush');
+    if(push){ ev.preventDefault(); simplePush(); return; }
+    const pull = ev.target && ev.target.closest && ev.target.closest('#btnSimplePull');
+    if(pull){ ev.preventDefault(); simplePull(); return; }
+  });
+
+  // Autosync pull toutes 5 min
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>simplePull().catch(()=>{}); tick(); t=setInterval(tick,5*60*1000); }
+  document.addEventListener('DOMContentLoaded', startTimer);
+})();
+</script>
+
+
+<script>
+(function(){"use strict";
+  const FIXED_URI_FINAL = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const API_KEY_FINAL   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+  const LS_OVERRIDE     = "neptune-central-override-uri";
+
+  let currentUri = localStorage.getItem(LS_OVERRIDE) || FIXED_URI_FINAL;
+  let inflight = false;
+  let cooldownUntil = 0;
+
+  function now(){ return Date.now(); }
+  function leftSec(){ return Math.max(0, Math.ceil((cooldownUntil - now())/1000)); }
+  function status(msg){ const el=document.getElementById('simpleSaveStatus'); if(el) el.textContent = msg + " ("+new Date().toLocaleTimeString()+")"; console.log("[push-fallback]", msg); }
+  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
+  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
+  function parseRetryAfter(h){ if(!h) return 0; const s=parseInt(h,10); if(!isNaN(s)) return s*1000; const t=Date.parse(h); if(!isNaN(t)) return Math.max(0,t-now()); return 0; }
+
+  async function createCentral(){
+    const createUrl='https://api.jsonstorage.net/v1/json?apiKey='+encodeURIComponent(API_KEY_FINAL);
+    const rc=await fetch(createUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    if(!rc.ok){ const t=await rc.text().catch(()=>'' ); throw new Error('POST '+rc.status+' — '+t.slice(0,200)); }
+    const j=await rc.json(); if(!j.uri) throw new Error('Réponse inattendue');
+    currentUri = j.uri; localStorage.setItem(LS_OVERRIDE, currentUri);
+    status("Nouveau central prêt");
+    return currentUri;
+  }
+
+  async function ensureCentral(){
+    const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+    let r = await fetch(u, {method:'GET', cache:'no-cache'});
+    if(r.status===404) { await createCentral(); return; }
+    if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('GET '+r.status+' — '+t.slice(0,200)); }
+  }
+
+  async function pushNow(){
+    if(inflight){ status('Un envoi est déjà en cours…'); return; }
+    if(now() < cooldownUntil){ status('Limite atteinte — réessayez dans '+leftSec()+'s'); return; }
+    inflight = true;
+    const btn = document.getElementById('btnSimplePush'); if(btn) btn.disabled = true;
+    try{
+      if(typeof window.save==='function') window.save();
+      stamp();
+      // 1) pré-vérif
+      await ensureCentral();
+      const body = JSON.stringify(window.data||{});
+      const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+      const headers = {'Content-Type':'application/json','apiKey':API_KEY_FINAL}; // header + query, max compat
+      status('Envoi en cours…');
+      let r = await fetch(u, {method:'PUT', headers, body});
+      if(!r.ok){
+        // 404 fallback: créer puis réessayer immédiatement
+        if(r.status===404){
+          status("404 — création d'un nouveau central puis réessai…");
+          await createCentral();
+          const u2 = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+          r = await fetch(u2, {method:'PUT', headers, body});
+        }
+      }
+      if(!r.ok){
+        const t=await r.text().catch(()=>'' );
+        const ra=r.headers&&r.headers.get?r.headers.get('Retry-After'):null;
+        const backoff=r.status===429?(parseRetryAfter(ra)||60000):0;
+        if(backoff) cooldownUntil=now()+backoff;
+        throw new Error('HTTP '+r.status+' — '+t.slice(0,200)+(backoff?(' — retry '+Math.ceil(backoff/1000)+'s'):'')+' — payload '+sizeKB+' Ko');
+      }
+      status('PUSH ok ('+sizeKB+' Ko)');
+      await r.json().catch(()=>null);
+    }catch(e){ console.warn(e); status('Échec écriture — '+(e.message||e)); }
+    finally{ inflight=false; if(btn) btn.disabled=false; }
+  }
+
+  async function pullNow(){
+    if(inflight) return;
+    try{
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+      const r = await fetch(u, {method:'GET', cache:'no-cache'});
+      if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('HTTP '+r.status+' — '+t.slice(0,200)); }
+      const remote = await r.json();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); status('Échec lecture — '+(e.message||e)); }
+  }
+
+  // Force type="button" (au cas où le HTML ne l'ait pas)
+  document.addEventListener('DOMContentLoaded', function(){
+    var b1=document.getElementById('btnSimplePush'); if(b1) b1.setAttribute('type','button');
+    var b2=document.getElementById('btnSimplePull'); if(b2) b2.setAttribute('type','button');
+  });
+
+  // Délégation de clics
+  document.addEventListener('click', function(ev){
+    const n = ev.target && ev.target.closest ? ev.target.closest('#btnSimplePush, #btnSimplePull') : null;
+    if(!n) return;
+    ev.preventDefault();
+    if(n.id==='btnSimplePush') pushNow();
+    else if(n.id==='btnSimplePull') pullNow();
+  });
+
+  // Autosync pull 5 min
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>pullNow().catch(()=>{}); tick(); t=setInterval(tick, 5*60*1000); }
+  document.addEventListener('DOMContentLoaded', startTimer);
+})();
+</script>
+
+
+<script>
+(function(){"use strict";
+  const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const API_KEY   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+  const LS_OVERRIDE = "neptune-central-override-uri";
+
+  let currentUri = localStorage.getItem(LS_OVERRIDE) || FIXED_URI;
+  let inflight = false;
+  let cooldownUntil = 0;
+
+  function now(){ return Date.now(); }
+  function leftSec(){ return Math.max(0, Math.ceil((cooldownUntil - now())/1000)); }
+  function status(msg){ const el=document.getElementById('simpleSaveStatus'); if(el) el.textContent = msg + " ("+new Date().toLocaleTimeString()+")"; console.log("[forcecreate]", msg); }
+  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
+  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
+  function parseRetryAfter(h){ if(!h) return 0; const s=parseInt(h,10); if(!isNaN(s)) return s*1000; const t=Date.parse(h); if(!isNaN(t)) return Math.max(0,t-now()); return 0; }
+
+  async function createCentral(){
+    const url='https://api.jsonstorage.net/v1/json?apiKey='+encodeURIComponent(API_KEY);
+    const rc=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    if(!rc.ok){ const t=await rc.text().catch(()=>'' ); throw new Error('POST '+rc.status+' — '+t.slice(0,200)); }
+    const j=await rc.json(); if(!j.uri) throw new Error('Réponse inattendue');
+    currentUri = j.uri; localStorage.setItem(LS_OVERRIDE, currentUri);
+    status("Nouveau central créé");
+    return currentUri;
+  }
+
+  async function ensureCentral(forceCreate){
+    // Toujours ping avec clé pour être cohérent
+    const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+    if(forceCreate || !localStorage.getItem(LS_OVERRIDE)){
+      await createCentral();
+      return;
+    }
+    let r = await fetch(u, {method:'GET', cache:'no-cache'});
+    if(r.status===404){ await createCentral(); return; }
+    if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('GET '+r.status+' — '+t.slice(0,200)); }
+  }
+
+  async function pushNow(){
+    if(inflight){ status('Un envoi est déjà en cours…'); return; }
+    if(now() < cooldownUntil){ status('Limite atteinte — réessayez dans '+leftSec()+'s'); return; }
+    inflight = true;
+    const btn=document.getElementById('btnSimplePush'); if(btn) btn.disabled = true;
+    try{
+      if(typeof window.save==='function') window.save();
+      stamp();
+      // Si pas d'override => on force la création AVANT le premier push
+      await ensureCentral(!localStorage.getItem(LS_OVERRIDE));
+      const body = JSON.stringify(window.data||{});
+      const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+      status('Envoi en cours…');
+      let r = await fetch(u, {method:'PUT', headers:{'Content-Type':'application/json','apiKey':API_KEY}, body});
+      if(!r.ok){
+        if(r.status===404){
+          // Même si on a déjà créé, on re-crée et on retente une dernière fois
+          status("404 — création et réessai…");
+          await createCentral();
+          const u2 = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+          r = await fetch(u2, {method:'PUT', headers:{'Content-Type':'application/json','apiKey':API_KEY}, body});
+        }
+      }
+      if(!r.ok){
+        const t=await r.text().catch(()=>'' );
+        const ra=r.headers&&r.headers.get?r.headers.get('Retry-After'):null;
+        const backoff=r.status===429?(parseRetryAfter(ra)||60000):0;
+        if(backoff) cooldownUntil=now()+backoff;
+        throw new Error('HTTP '+r.status+' — '+t.slice(0,200)+(backoff?(' — retry '+Math.ceil(backoff/1000)+'s'):'')+' — payload '+sizeKB+' Ko');
+      }
+      status('PUSH ok ('+sizeKB+' Ko)');
+      await r.json().catch(()=>null);
+    }catch(e){ console.warn(e); status('Échec écriture — '+(e.message||e)); }
+    finally{ inflight=false; if(btn) btn.disabled=false; }
+  }
+
+  async function pullNow(){
+    if(inflight) return;
+    try{
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+      const r = await fetch(u, {method:'GET', cache:'no-cache'});
+      if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('HTTP '+r.status+' — '+t.slice(0,200)); }
+      const remote = await r.json();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); status('Échec lecture — '+(e.message||e)); }
+  }
+
+  // Force le type="button" et crée un central si aucun override au chargement
+  document.addEventListener('DOMContentLoaded', function(){
+    var b1=document.getElementById('btnSimplePush'); if(b1) b1.setAttribute('type','button');
+    var b2=document.getElementById('btnSimplePull'); if(b2) b2.setAttribute('type','button');
+    // Création immédiate si aucun central local (évite tout 404 au premier clic)
+    if(!localStorage.getItem(LS_OVERRIDE)){
+      ensureCentral(true).catch(e=>status('Init central — '+(e.message||e)));
+    }
+  });
+
+  // Délégation de clics (robuste aux re-render)
+  document.addEventListener('click', function(ev){
+    const n = ev.target && ev.target.closest ? ev.target.closest('#btnSimplePush, #btnSimplePull') : null;
+    if(!n) return;
+    ev.preventDefault();
+    if(n.id==='btnSimplePush') pushNow();
+    else if(n.id==='btnSimplePull') pullNow();
+  });
+
+  // Autosync pull 5 min
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>pullNow().catch(()=>{}); tick(); t=setInterval(tick, 5*60*1000); }
+  document.addEventListener('DOMContentLoaded', startTimer);
+})();
+</script>
+
+
+<!-- === Neptune: panneau de sauvegarde centrale (JsonStorage URI longue, éditable) === -->
+<style>
+  .nc-wrap{position:fixed;right:12px;bottom:12px;z-index:99999}
+  .nc-bar{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:8px 10px}
+  .nc-btn{padding:6px 10px;border-radius:8px;border:1px solid #ddd;background:#f7f7f7;cursor:pointer;font:13px system-ui}
+  .nc-btn.primary{background:#1a7f37;border-color:#1a7f37;color:#fff}
+  .nc-status{color:#333;margin-left:6px;font:13px system-ui}
+  .nc-drawer{position:absolute;right:0;bottom:56px;width:360px;max-width:92vw;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px 14px rgba(0,0,0,.12);padding:12px;display:none}
+  .nc-row{display:flex;gap:6px;align-items:center;margin:6px 0}
+  .nc-row input{flex:1;padding:8px;border:1px solid #e5e7eb;border-radius:8px;font:13px system-ui}
+  .nc-row label{font:12px system-ui;color:#555;min-width:90px}
+  .nc-help{font:12px system-ui;color:#667085}
+  .nc-link{font:12px system-ui;color:#2563eb;cursor:pointer;text-decoration:underline}
+</style>
+<div class="nc-wrap">
+  <div class="nc-bar">
+    <button class="nc-btn" id="nc-load">← Charger</button>
+    <button class="nc-btn primary" id="nc-save">Enregistrer →</button>
+    <button class="nc-btn" id="nc-opt">⚙️</button>
+    <button class="nc-btn" id="nc-restore">↩︎ Restaurer</button>
+    <span id="nc-status" class="nc-status">—</span>
+  </div>
+
+  <div class="nc-drawer" id="nc-drawer">
+    <div class="nc-row"><label>URI longue</label><input id="nc-uri" placeholder="https://api.jsonstorage.net/v1/json/USER/ITEM"></div>
+    <div class="nc-row"><label>Clé API</label><input id="nc-key" placeholder="clé avec Read+Modify"></div>
+    <div class="nc-row">
+      <button class="nc-btn" id="nc-savecfg">Enregistrer options</button>
+      <span class="nc-help">Conservé dans ce navigateur (localStorage).</span>
+    </div>
+    <div class="nc-row nc-help">Astuce : l’URI longue est celle renvoyée par le POST de JsonStorage (…/v1/json/<b>USER</b>/<b>ITEM</b>)</div>
+    <div class="nc-row"><span class="nc-link" id="nc-fill-defaults">Remplir avec les valeurs par défaut</span></div>
+  </div>
 </div>
 
 <script>
 (function(){"use strict";
-  const API_KEY  = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
-  const LONG_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
-  const withKey = (u) => u + (u.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(API_KEY);
+  const DEF_KEY = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
+  const DEF_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
+  const CFG_KEY = "neptune_central_cfg_v1";
+  const BKP_KEY = "neptune_central_backup_last";
+
   const $ = (s)=>document.querySelector(s);
   const at = ()=> new Date().toLocaleTimeString();
-  const S = (m, ok) => { const el = $("#nc-status"); if(!el) return; el.textContent = m + " ("+at()+")"; el.style.color = ok ? "#0a7d00" : "#333"; };
+  const withKey = (u,k)=> u + (u.includes("?")?"&":"?") + "apiKey=" + encodeURIComponent(k||"");
+  const S = (m, ok)=>{ const el=$("#nc-status"); if(el){ el.textContent=m+" ("+at()+")"; el.style.color = ok ? "#0a7d00":"#333"; } };
 
-  // clone securisé pour sérialiser window.data (ignore DOM, fonctions, cycles)
-  function safeClone(value, maxDepth=12) {
-    const seen = new WeakSet();
-    function clone(v, d) {
-      if (d < 0) return null;
-      if (v === null || typeof v !== "object") {
-        if (typeof v === "function") return null;
-        if (typeof v === "bigint") return String(v);
-        return v;
-      }
-      if (v instanceof Date) return new Date(v).toISOString();
-      if (v instanceof RegExp) return v.toString();
-      if (typeof Element !== "undefined" && v instanceof Element) return null;
-      if (typeof Node !== "undefined" && v instanceof Node) return null;
-      if (seen.has(v)) return null;
-      seen.add(v);
-      if (Array.isArray(v)) return v.map(x=>clone(x,d-1));
-      const o = {};
-      for (const k in v) {
-        if (!Object.prototype.hasOwnProperty.call(v,k)) continue;
-        if (k === "__proto__") continue;
-        try { o[k] = clone(v[k], d-1); } catch(_) { o[k] = null; }
-      }
-      return o;
-    }
-    return clone(value, maxDepth);
+  function loadCfg(){ try{ return JSON.parse(localStorage.getItem(CFG_KEY)||"null")||{ uri:DEF_URI, key:DEF_KEY }; }catch(_ ){ return { uri:DEF_URI, key:DEF_KEY }; } }
+  function saveCfg(cfg){ localStorage.setItem(CFG_KEY, JSON.stringify(cfg||{})); }
+  function uiLoadCfg(){
+    const cfg = loadCfg();
+    const u=$("#nc-uri"), k=$("#nc-key");
+    if(u) u.value = cfg.uri||"";
+    if(k) k.value = cfg.key||"";
+  }
+  function uiSaveCfg(){
+    const u=$("#nc-uri"), k=$("#nc-key");
+    const cfg = { uri:(u&&u.value||"").trim(), key:(k&&k.value||"").trim() };
+    saveCfg(cfg); S("Options enregistrées", true);
   }
 
-  async function centralGET() {
-    const r = await fetch(withKey(LONG_URI), { method:"GET", cache:"no-cache" });
-    const t = await r.text();
-    if (!r.ok) throw new Error("GET "+r.status+" — "+t.slice(0,200));
-    return JSON.parse(t || "{}");
+  function backupNow(){
+    try{ const d = window.data||{}; const bkp = JSON.stringify(d); localStorage.setItem(BKP_KEY, bkp); }catch(_ ){}
+  }
+  function restoreNow(){
+    try{ const b = localStorage.getItem(BKP_KEY); if(!b) return S("Aucune sauvegarde locale"); const obj = JSON.parse(b); applyState(obj); S("Restauré depuis la sauvegarde locale", true); }catch(e){ S("Restauration impossible"); console.warn(e); }
   }
 
-  async function centralPUT(obj) {
-    const body = JSON.stringify(obj);
-    const r = await fetch(withKey(LONG_URI), {
-      method:"PUT",
-      headers:{"Content-Type":"application/json"},
-      body,
-      cache:"no-store"
-    });
-    const t = await r.text();
-    if (!r.ok) throw new Error("PUT "+r.status+" — "+t.slice(0,200));
-    return true;
-  }
-
-  function ensureData() {
-    try { if (typeof window.save === "function") window.save(); } catch(_ ){}
-    if (!window.data || typeof window.data !== "object") window.data = {};
-    if (!window.data.__meta) window.data.__meta = {};
+  function ensureData(){
+    try{ if(typeof window.save==="function") window.save(); }catch(_ ){}
+    if(!window.data || typeof window.data!=="object") window.data = {};
+    if(!window.data.__meta) window.data.__meta={};
     window.data.__meta.updatedAt = new Date().toISOString();
     return window.data;
   }
 
-  function applyState(remote) {
-    if (remote && typeof remote === "object") {
+  function safeClone(value,maxDepth=12){
+    const seen = new WeakSet();
+    function c(v,d){
+      if(d<0) return null;
+      if(v===null || typeof v!=="object"){
+        if(typeof v==="function") return null;
+        if(typeof v==="bigint") return String(v);
+        return v;
+      }
+      if(v instanceof Date) return new Date(v).toISOString();
+      if(v instanceof RegExp) return v.toString();
+      if(typeof Element!=="undefined" && v instanceof Element) return null;
+      if(typeof Node!=="undefined" && v instanceof Node) return null;
+      if(seen.has(v)) return null; seen.add(v);
+      if(Array.isArray(v)) return v.map(x=>c(x,d-1));
+      const o={}; for(const k in v){ if(!Object.prototype.hasOwnProperty.call(v,k)) continue; if(k==="__proto__") continue;
+        try{ o[k]=c(v[k],d-1); }catch(_ ){ o[k]=null; }
+      } return o;
+    }
+    return c(value,maxDepth);
+  }
+
+  async function centralGET(uri,key){
+    const r = await fetch(withKey(uri,key), { method:"GET", cache:"no-cache" });
+    const t = await r.text();
+    if(!r.ok) throw new Error("GET "+r.status+" — "+t.slice(0,200));
+    return JSON.parse(t || "{}");
+  }
+  async function centralPUT(uri,key,obj){
+    const body = JSON.stringify(obj);
+    const r = await fetch(withKey(uri,key), { method:"PUT", headers:{"Content-Type":"application/json"}, body, cache:"no-store" });
+    const t = await r.text();
+    if(!r.ok) throw new Error("PUT "+r.status+" — "+t.slice(0,200));
+    return true;
+  }
+
+  function applyState(remote){
+    if(remote && typeof remote==="object"){
       window.data = remote;
-      try { if (typeof window.refreshActivePage === "function") window.refreshActivePage(); } catch(_ ){}
-      try { if (typeof window.render === "function") window.render(); } catch(_ ){}
+      try{ if(typeof window.refreshActivePage==="function") window.refreshActivePage(); }catch(_ ){}
+      try{ if(typeof window.render==="function") window.render(); }catch(_ ){}
     }
   }
 
-  async function doPull() {
-    try { S("Lecture…"); const j = await centralGET(); applyState(j); S("Chargé", true); }
-    catch(e) { console.warn(e); S("Échec lecture"); }
+  async function doPull(){
+    const cfg = loadCfg();
+    if(!cfg.uri) return S("Renseigne l’URI longue dans ⚙️");
+    try{ backupNow(); S("Lecture…"); const j = await centralGET(cfg.uri, cfg.key); applyState(j); S("Chargé", true); }
+    catch(e){ console.warn(e); S("Échec lecture"); }
+  }
+  async function doPush(){
+    if(location.protocol==="file:") return S("Ouvre en HTTPS");
+    const cfg = loadCfg();
+    if(!cfg.uri) return S("Renseigne l’URI longue dans ⚙️");
+    try{ S("Préparation…"); backupNow(); const d = ensureData(); const cloned = safeClone(d,12); const kb = Math.round(JSON.stringify(cloned).length/1024); S("Écriture… ("+kb+" Ko)"); await centralPUT(cfg.uri, cfg.key, cloned); S("Enregistré ✅", true); }
+    catch(e){ console.warn(e); S("Échec écriture"); }
   }
 
-  async function doPush() {
-    if (location.protocol === "file:") { S("Ouvrir en HTTPS (GitHub Pages)"); return; }
-    try {
-      S("Préparation…");
-      const d = ensureData();
-      const cloned = safeClone(d, 12);
-      const payload = JSON.stringify(cloned);
-      const kb = Math.round(payload.length/1024);
-      S("Écriture… ("+kb+" Ko)");
-      await centralPUT(cloned);
-      S("Enregistré ✅", true);
-    } catch(e) { console.warn(e); S("Échec écriture"); }
-  }
-
+  // UI
   document.addEventListener("DOMContentLoaded", ()=>{
-    const loadBtn = $("#nc-load");
-    const saveBtn = $("#nc-save");
-    if (loadBtn) loadBtn.addEventListener("click", doPull);
-    if (saveBtn) saveBtn.addEventListener("click", doPush);
-    // lecture initiale
-    doPull().catch(()=>{});
+    const dr = $("#nc-drawer"), opt=$("#nc-opt");
+    $("#nc-load")?.addEventListener("click", doPull);
+    $("#nc-save")?.addEventListener("click", doPush);
+    $("#nc-restore")?.addEventListener("click", restoreNow);
+    $("#nc-savecfg")?.addEventListener("click", uiSaveCfg);
+    $("#nc-fill-defaults")?.addEventListener("click", ()=>{ $("#nc-uri").value=DEF_URI; $("#nc-key").value=DEF_KEY; });
+    opt?.addEventListener("click", ()=>{ if(!dr) return; dr.style.display = (dr.style.display==="block"?"none":"block"); uiLoadCfg(); });
+    // N'auto-charge pas pour éviter d'écraser — l'utilisateur choisit quand charger.
+    uiLoadCfg();
   });
 
-  // API publique au besoin
-  window.neptuneCentral = {
-    pull: ()=>doPull(),
-    push: ()=>doPush()
-  };
+  // Expose API si besoin
+  window.neptuneCentral = { pull: ()=>doPull(), push: ()=>doPush(), cfg: loadCfg };
 })();
 </script>
-<!-- === /Barre sauvegarde centrale === -->
+<!-- === /Neptune: panneau de sauvegarde === -->
 
 </body></html>
+<script>
+(function(){"use strict";
+  const FIXED_URI_FINAL = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
+  const API_KEY_FINAL   = "0a3d2cd2-f626-4b0d-8817-0d3d1b40db92";
+  const LS_OVERRIDE     = "neptune-central-override-uri";
+
+  let currentUri = localStorage.getItem(LS_OVERRIDE) || FIXED_URI_FINAL;
+  let inflight = false;
+  let cooldownUntil = 0;
+
+  function now(){ return Date.now(); }
+  function leftSec(){ return Math.max(0, Math.ceil((cooldownUntil - now())/1000)); }
+  function status(msg){ const el=document.getElementById('simpleSaveStatus'); if(el) el.textContent = msg + " ("+new Date().toLocaleTimeString()+")"; console.log("[push-final]", msg); }
+  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
+  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
+  function parseRetryAfter(h){ if(!h) return 0; const s=parseInt(h,10); if(!isNaN(s)) return s*1000; const t=Date.parse(h); if(!isNaN(t)) return Math.max(0,t-now()); return 0; }
+
+  async function ensureCentral(){
+    const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+    let r = await fetch(u, {method:'GET', cache:'no-cache'});
+    if(r.status===404) {
+      status("Central introuvable — création d'un nouveau…");
+      const createUrl='https://api.jsonstorage.net/v1/json?apiKey='+encodeURIComponent(API_KEY_FINAL);
+      const rc=await fetch(createUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+      if(!rc.ok){ const t=await rc.text().catch(()=>'' ); throw new Error('POST '+rc.status+' — '+t.slice(0,200)); }
+      const j=await rc.json(); if(!j.uri) throw new Error('Réponse inattendue');
+      currentUri = j.uri; localStorage.setItem(LS_OVERRIDE, currentUri);
+      status("Nouveau central prêt");
+      return;
+    }
+    if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('GET '+r.status+' — '+t.slice(0,200)); }
+  }
+
+  async function pushNow(){
+    if(inflight){ status('Un envoi est déjà en cours…'); return; }
+    if(now() < cooldownUntil){ status('Limite atteinte — réessayez dans '+leftSec()+'s'); return; }
+    inflight = true;
+    const btn = document.getElementById('btnSimplePush'); if(btn) btn.disabled = true;
+    try{
+      if(typeof window.save==='function') window.save();
+      stamp();
+      await ensureCentral();
+      const body = JSON.stringify(window.data||{});
+      const sizeKB = (new Blob([body]).size/1024).toFixed(1);
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+      status('Envoi en cours…');
+      const r = await fetch(u, {method:'PUT', headers:{'Content-Type':'application/json'}, body});
+      if(!r.ok){ const t=await r.text().catch(()=>'' ); const ra=r.headers&&r.headers.get?r.headers.get('Retry-After'):null; const backoff=r.status===429?(parseRetryAfter(ra)||60000):0; if(backoff) cooldownUntil=now()+backoff; throw new Error('HTTP '+r.status+' — '+t.slice(0,200)+(backoff?(' — retry '+Math.ceil(backoff/1000)+'s'):'')+' — payload '+sizeKB+' Ko'); }
+      status('PUSH ok ('+sizeKB+' Ko)');
+      await r.json().catch(()=>null);
+    }catch(e){ console.warn(e); status('Échec écriture — '+(e.message||e)); }
+    finally{ inflight=false; if(btn) btn.disabled=false; }
+  }
+
+  async function pullNow(){
+    if(inflight) return;
+    try{
+      const u = currentUri + (currentUri.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY_FINAL);
+      const r = await fetch(u, {method:'GET', cache:'no-cache'});
+      if(!r.ok){ const t=await r.text().catch(()=>'' ); throw new Error('HTTP '+r.status+' — '+t.slice(0,200)); }
+      const remote = await r.json();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); status('Échec lecture — '+(e.message||e)); }
+  }
+
+  document.addEventListener('click', function(ev){
+    const n = ev.target && ev.target.closest ? ev.target.closest('#btnSimplePush, #btnSimplePull') : null;
+    if(!n) return;
+    ev.preventDefault();
+    if(n.id==='btnSimplePush') pushNow();
+    else if(n.id==='btnSimplePull') pullNow();
+  });
+
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>pullNow().catch(()=>{}); tick(); t=setInterval(tick, 5*60*1000); }
+  document.addEventListener('DOMContentLoaded', startTimer);
+})();
+</script>
