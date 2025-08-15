@@ -3536,81 +3536,30 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 </script>
 
 
-<!-- === Neptune: panneau de sauvegarde centrale (JsonStorage URI longue, éditable) === -->
+<!-- === Neptune: Sauvegarde centrale (version figée) === -->
 <style>
   .nc-wrap{position:fixed;right:12px;bottom:12px;z-index:99999}
   .nc-bar{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:8px 10px}
   .nc-btn{padding:6px 10px;border-radius:8px;border:1px solid #ddd;background:#f7f7f7;cursor:pointer;font:13px system-ui}
   .nc-btn.primary{background:#1a7f37;border-color:#1a7f37;color:#fff}
   .nc-status{color:#333;margin-left:6px;font:13px system-ui}
-  .nc-drawer{position:absolute;right:0;bottom:56px;width:360px;max-width:92vw;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px 14px rgba(0,0,0,.12);padding:12px;display:none}
-  .nc-row{display:flex;gap:6px;align-items:center;margin:6px 0}
-  .nc-row input{flex:1;padding:8px;border:1px solid #e5e7eb;border-radius:8px;font:13px system-ui}
-  .nc-row label{font:12px system-ui;color:#555;min-width:90px}
-  .nc-help{font:12px system-ui;color:#667085}
-  .nc-link{font:12px system-ui;color:#2563eb;cursor:pointer;text-decoration:underline}
 </style>
 <div class="nc-wrap">
   <div class="nc-bar">
     <button class="nc-btn" id="nc-load">← Charger</button>
     <button class="nc-btn primary" id="nc-save">Enregistrer →</button>
-    <button class="nc-btn" id="nc-opt">⚙️</button>
-    <button class="nc-btn" id="nc-restore">↩︎ Restaurer</button>
     <span id="nc-status" class="nc-status">—</span>
   </div>
-
-  <div class="nc-drawer" id="nc-drawer">
-    <div class="nc-row"><label>URI longue</label><input id="nc-uri" placeholder="https://api.jsonstorage.net/v1/json/USER/ITEM"></div>
-    <div class="nc-row"><label>Clé API</label><input id="nc-key" placeholder="clé avec Read+Modify"></div>
-    <div class="nc-row">
-      <button class="nc-btn" id="nc-savecfg">Enregistrer options</button>
-      <span class="nc-help">Conservé dans ce navigateur (localStorage).</span>
-    </div>
-    <div class="nc-row nc-help">Astuce : l’URI longue est celle renvoyée par le POST de JsonStorage (…/v1/json/<b>USER</b>/<b>ITEM</b>)</div>
-    <div class="nc-row"><span class="nc-link" id="nc-fill-defaults">Remplir avec les valeurs par défaut</span></div>
-  </div>
 </div>
-
 <script>
 (function(){"use strict";
-  const DEF_KEY = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
-  const DEF_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
-  const CFG_KEY = "neptune_central_cfg_v1";
-  const BKP_KEY = "neptune_central_backup_last";
+  const API_KEY  = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
+  const LONG_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
 
   const $ = (s)=>document.querySelector(s);
   const at = ()=> new Date().toLocaleTimeString();
-  const withKey = (u,k)=> u + (u.includes("?")?"&":"?") + "apiKey=" + encodeURIComponent(k||"");
   const S = (m, ok)=>{ const el=$("#nc-status"); if(el){ el.textContent=m+" ("+at()+")"; el.style.color = ok ? "#0a7d00":"#333"; } };
-
-  function loadCfg(){ try{ return JSON.parse(localStorage.getItem(CFG_KEY)||"null")||{ uri:DEF_URI, key:DEF_KEY }; }catch(_ ){ return { uri:DEF_URI, key:DEF_KEY }; } }
-  function saveCfg(cfg){ localStorage.setItem(CFG_KEY, JSON.stringify(cfg||{})); }
-  function uiLoadCfg(){
-    const cfg = loadCfg();
-    const u=$("#nc-uri"), k=$("#nc-key");
-    if(u) u.value = cfg.uri||"";
-    if(k) k.value = cfg.key||"";
-  }
-  function uiSaveCfg(){
-    const u=$("#nc-uri"), k=$("#nc-key");
-    const cfg = { uri:(u&&u.value||"").trim(), key:(k&&k.value||"").trim() };
-    saveCfg(cfg); S("Options enregistrées", true);
-  }
-
-  function backupNow(){
-    try{ const d = window.data||{}; const bkp = JSON.stringify(d); localStorage.setItem(BKP_KEY, bkp); }catch(_ ){}
-  }
-  function restoreNow(){
-    try{ const b = localStorage.getItem(BKP_KEY); if(!b) return S("Aucune sauvegarde locale"); const obj = JSON.parse(b); applyState(obj); S("Restauré depuis la sauvegarde locale", true); }catch(e){ S("Restauration impossible"); console.warn(e); }
-  }
-
-  function ensureData(){
-    try{ if(typeof window.save==="function") window.save(); }catch(_ ){}
-    if(!window.data || typeof window.data!=="object") window.data = {};
-    if(!window.data.__meta) window.data.__meta={};
-    window.data.__meta.updatedAt = new Date().toISOString();
-    return window.data;
-  }
+  const withKey = (u)=> u + (u.includes("?")?"&":"?") + "apiKey=" + encodeURIComponent(API_KEY);
 
   function safeClone(value,maxDepth=12){
     const seen = new WeakSet();
@@ -3634,15 +3583,29 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     return c(value,maxDepth);
   }
 
-  async function centralGET(uri,key){
-    const r = await fetch(withKey(uri,key), { method:"GET", cache:"no-cache" });
+  function ensureData(){
+    try{ if(typeof window.save==="function") window.save(); }catch(_ ){}
+    if(!window.data || typeof window.data!=="object") window.data = {};
+    if(!window.data.__meta) window.data.__meta={};
+    window.data.__meta.updatedAt = new Date().toISOString();
+    return window.data;
+  }
+
+  async function centralGET(){
+    const r = await fetch(withKey(LONG_URI), { method:"GET", cache:"no-cache" });
     const t = await r.text();
     if(!r.ok) throw new Error("GET "+r.status+" — "+t.slice(0,200));
     return JSON.parse(t || "{}");
   }
-  async function centralPUT(uri,key,obj){
+
+  async function centralPUT(obj){
     const body = JSON.stringify(obj);
-    const r = await fetch(withKey(uri,key), { method:"PUT", headers:{"Content-Type":"application/json"}, body, cache:"no-store" });
+    const r = await fetch(withKey(LONG_URI), {
+      method:"PUT",
+      headers:{"Content-Type":"application/json"},
+      body,
+      cache:"no-store"
+    });
     const t = await r.text();
     if(!r.ok) throw new Error("PUT "+r.status+" — "+t.slice(0,200));
     return true;
@@ -3657,37 +3620,34 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   }
 
   async function doPull(){
-    const cfg = loadCfg();
-    if(!cfg.uri) return S("Renseigne l’URI longue dans ⚙️");
-    try{ backupNow(); S("Lecture…"); const j = await centralGET(cfg.uri, cfg.key); applyState(j); S("Chargé", true); }
-    catch(e){ console.warn(e); S("Échec lecture"); }
-  }
-  async function doPush(){
-    if(location.protocol==="file:") return S("Ouvre en HTTPS");
-    const cfg = loadCfg();
-    if(!cfg.uri) return S("Renseigne l’URI longue dans ⚙️");
-    try{ S("Préparation…"); backupNow(); const d = ensureData(); const cloned = safeClone(d,12); const kb = Math.round(JSON.stringify(cloned).length/1024); S("Écriture… ("+kb+" Ko)"); await centralPUT(cfg.uri, cfg.key, cloned); S("Enregistré ✅", true); }
-    catch(e){ console.warn(e); S("Échec écriture"); }
+    try{ S("Lecture…"); const j = await centralGET(); applyState(j);
+      // hydrate localStorage via logique appli
+      try{ if(typeof window.save==="function") window.save(); }catch(_ ){}
+      S("Chargé (central)", true);
+    } catch(e){ console.warn(e); S("Échec lecture"); }
   }
 
-  // UI
+  async function doPush(){
+    if(location.protocol==="file:") return S("Ouvrir en HTTPS");
+    try{ S("Préparation…"); const d = ensureData(); const cloned = safeClone(d,12);
+      const payload = JSON.stringify(cloned); const kb = Math.round(payload.length/1024);
+      S("Écriture… ("+kb+" Ko)");
+      await centralPUT(cloned); S("Enregistré ✅", true);
+    } catch(e){ console.warn(e); S("Échec écriture"); }
+  }
+
   document.addEventListener("DOMContentLoaded", ()=>{
-    const dr = $("#nc-drawer"), opt=$("#nc-opt");
-    $("#nc-load")?.addEventListener("click", doPull);
-    $("#nc-save")?.addEventListener("click", doPush);
-    $("#nc-restore")?.addEventListener("click", restoreNow);
-    $("#nc-savecfg")?.addEventListener("click", uiSaveCfg);
-    $("#nc-fill-defaults")?.addEventListener("click", ()=>{ $("#nc-uri").value=DEF_URI; $("#nc-key").value=DEF_KEY; });
-    opt?.addEventListener("click", ()=>{ if(!dr) return; dr.style.display = (dr.style.display==="block"?"none":"block"); uiLoadCfg(); });
-    // N'auto-charge pas pour éviter d'écraser — l'utilisateur choisit quand charger.
-    uiLoadCfg();
+    document.getElementById("nc-load")?.addEventListener("click", doPull);
+    document.getElementById("nc-save")?.addEventListener("click", doPush);
+    // Auto-chargement au démarrage
+    doPull().catch(()=>{});
   });
 
-  // Expose API si besoin
-  window.neptuneCentral = { pull: ()=>doPull(), push: ()=>doPush(), cfg: loadCfg };
+  // API exposée
+  window.neptuneCentral = { pull: ()=>doPull(), push: ()=>doPush() };
 })();
 </script>
-<!-- === /Neptune: panneau de sauvegarde === -->
+<!-- === /Neptune: Sauvegarde centrale (figée) === -->
 
 </body></html>
 <script>
