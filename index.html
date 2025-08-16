@@ -2839,21 +2839,24 @@ function renderOncalls(){
 /* ====== Save / Import ====== */
 function buildSave(){
 
-  // --- Helpers communs (exposés globalement pour JsonStorage) ---
+  // --- Helpers communs (compat schéma + résumé + application import) ---
   function migrateData(j){
     if(!j || typeof j!=='object') return {};
     const out = Object.assign({}, j);
+
     if(!Array.isArray(out.specialties))   out.specialties   = out.specialties   || [];
     if(!Array.isArray(out.practitioners)) out.practitioners = out.practitioners || [];
     if(!Array.isArray(out.interns))       out.interns       = out.interns       || [];
     if(!Array.isArray(out.rooms))         out.rooms         = out.rooms         || [];
+
     if(typeof out.absences!=='object' || !out.absences)             out.absences = {};
     if(typeof out.absencesIntern!=='object' || !out.absencesIntern) out.absencesIntern = {};
     if(typeof out.guards!=='object' || !out.guards)                 out.guards = {};
     if(typeof out.guardsIntern!=='object' || !out.guardsIntern)     out.guardsIntern = {};
     if(typeof out.oncalls!=='object' || !out.oncalls)               out.oncalls = {};
     if(typeof out.overrides!=='object' || !out.overrides)           out.overrides = {};
-    // Compat noms anciens
+
+    // Compat anciens noms
     if(Array.isArray(out.praticiens)  && !out.practitioners) out.practitioners = out.praticiens;
     if(Array.isArray(out.internes)    && !out.interns)       out.interns       = out.internes;
     if(Array.isArray(out.salles)      && !out.rooms)         out.rooms         = out.salles;
@@ -2863,10 +2866,13 @@ function buildSave(){
     if(out.gardes        && !out.guards)          out.guards          = out.gardes;
     if(out.gardesIntern  && !out.guardsIntern)    out.guardsIntern    = out.gardesIntern;
     if(out.astreintes    && !out.oncalls)         out.oncalls         = out.astreintes;
-    // Normalise les rooms
+
+    // Normalise rooms
     for(let i=0;i<out.rooms.length;i++){ if(!out.rooms[i].schedule) out.rooms[i].schedule = {}; }
+
     return out;
   }
+
   function summarizeData(d){
     try{
       const s = [
@@ -2884,22 +2890,24 @@ function buildSave(){
       if(hint) hint.textContent = 'Import: ' + s;
     }catch(_){}
   }
+
   function applyImportedData(j){
     try{ j = migrateData(j); }catch(_){}
     window.data = j;
-    if(typeof save==='function') save();
+    if (typeof save==='function') save();
     try{
       summarizeData(j);
       if(typeof refreshActivePage==='function') refreshActivePage();
       else if(typeof renderAccueil==='function') renderAccueil();
     }catch(_){}
   }
+
+  // Expose global pour JsonStorage (parité)
   window.migrateData = migrateData;
   window.summarizeData = summarizeData;
   window.applyImportedData = applyImportedData;
-  // --- fin helpers ---
 
-  // EXPORT (inchangé)
+  // --- EXPORT (simple, inchangé) ---
   const exp = $('btnExport');
   if (exp && !exp.__bound){
     exp.__bound = true;
@@ -2909,82 +2917,94 @@ function buildSave(){
     };
   }
 
-  // IMPORT (un seul flux: clic -> file picker -> import sur change)
+  // --- IMPORT (un seul flux: clic -> file picker -> import) ---
   const impBtn = $('btnImport');
   const impInp = $('fileImport');
   if (impBtn && impInp && !impInp.__bound){
     impInp.__bound = true;
-    impBtn.onclick = function(e){ try{e.preventDefault();e.stopPropagation();}catch(_{}){} impInp.click(); };
+    try{ impBtn.onclick = null; }catch(_){}
+    impBtn.addEventListener('click', function(e){ try{e.preventDefault();e.stopPropagation();}catch(_{}){} impInp.click(); });
     impInp.addEventListener('change', function(){
       const f = impInp.files && impInp.files[0]; if(!f) return;
       const r = new FileReader();
       r.onload = function(){
-        try{ const j = JSON.parse(String(r.result||'{}')); applyImportedData(j); }
-        catch(e){ console.warn(e); alert('Import invalide'); }
+        try{
+          const j = JSON.parse(String(r.result||'{}'));
+          applyImportedData(j);
+        }catch(e){ console.warn(e); alert('Import invalide'); }
         finally{ try{ impInp.value=''; }catch(_{}){} }
       };
       r.readAsText(f);
     });
   }
 
-  // RESET (inchangé)
+  // --- RESET (inchangé) ---
   const rst = $('btnReset');
   if (rst && !rst.__bound){
     rst.__bound = true;
     rst.onclick = function(){ if(!confirm('Tout réinitialiser ?')) return; localStorage.removeItem(KEY); location.reload(); };
   }
 }
-<script>
-// JsonStorage unifié — même logique que Import/Export
-(function(){
-  "use strict";
-  const FIXED_URI = "https://api.jsonstorage.net/v1/json/…TON_URI…";
-  const API_KEY   = "…TA_CLÉ_COMPLÈTE…";
 
-  function $(id){ return document.getElementById(id); }
-  function status(msg){
-    const el = $('simpleSaveStatus');
-    if (el) el.textContent = msg + " (" + new Date().toLocaleTimeString() + ")";
-  }
-  async function jsGet(){
-    const u = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey='+encodeURIComponent(API_KEY);
-    const r = await fetch(u, { cache:'no-cache' });
-    if(!r.ok) throw new Error('GET '+r.status);
-    return r.json();
-  }
-  async function jsPut(obj){
-    const u = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey='+encodeURIComponent(API_KEY);
-    const r = await fetch(u, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj, null, 2) });
-    if(!r.ok) throw new Error('PUT '+r.status);
-    return r.json();
-  }
-
-  async function simplePull(){
-    try{
-      status('Lecture JsonStorage…');
-      const remote = await jsGet();
-      (window.applyImportedData || function(j){ window.data=j; if(typeof save==='function') save(); })(remote);
-      status('OK : données chargées');
-    }catch(e){ console.warn(e); status('Échec lecture'); }
-  }
-  async function simplePush(){
-    try{
-      if (typeof save==='function') save();               // même logique qu’Export: on persiste d’abord local
-      try{                                                // estampille légère
-        if(!window.data) window.data = {};
-        if(!data.__meta) data.__meta = {};
-        data.__meta.updatedAt = new Date().toISOString();
-      }catch(_){}
-      await jsPut(window.data||{});
-      status('OK : données poussées');
-    }catch(e){ console.warn(e); status('Échec écriture'); }
-  }
-
-  function bind(){
-    const pull=$('btnSimplePull'), push=$('btnSimplePush');
-    if(pull && !pull.__bound){ pull.__bound=true; pull.addEventListener('click', simplePull); }
-    if(push && !push.__bound){ push.__bound=true; push.addEventListener('click', simplePush); }
-  }
-  document.addEventListener('DOMContentLoaded', bind);
+/* ====== Boot + Global Week/Year State ====== */
+// Persist selected week/year across tabs & sessions
+var UIKEY = 'neptune-ui';
+function defaultUI(){
+  try{
+    var now = new Date();
+    return {year: now.getFullYear(), week: isoWeekNumber(now)};
+  }catch(e){ return {year: 2025, week: 36}; }
+}
+var ui = (function(){
+  try{
+    var s = localStorage.getItem(UIKEY);
+    if(s){
+      var o = JSON.parse(s);
+      if(o && o.year && o.week) return {year: parseInt(o.year,10), week: parseInt(o.week,10)};
+    }
+  }catch(e){}
+  return defaultUI();
 })();
-</script>
+function saveUI(){ try{ localStorage.setItem(UIKEY, JSON.stringify(ui)); }catch(e){} }
+function updateBadge(){ try{ $('wkBadge').textContent = 'S'+pad2(ui.week)+' · '+ui.year; }catch(e){} }
+function setWeekYear(w, y){
+  try{
+    if(typeof w!=='undefined' && w!==null) ui.week = Math.max(1, Math.min(53, parseInt(w,10)||ui.week));
+    if(typeof y!=='undefined' && y!==null) ui.year = parseInt(y,10)||ui.year;
+    saveUI();
+    updateBadge();
+  }catch(e){}
+}
+function syncWeekControls(){ try{
+  var years = ['accYear','absrepYear','absYear','absIYear','gdYear','gdIYear','ocYear','stYear','stIYear','stAdvYear','ppYear'];
+  var weeks = ['accWeek','absrepWeek','absWeek','absIWeek','gdWeek','gdIWeek','ocWeek','stWeek','stIWeek','stAdvWeek','ppWeek'];
+  for(var i=0;i<years.length;i++){ var a=$(years[i]); if(a) a.value = String(ui.year); }
+  for(var j=0;j<weeks.length;j++){ var b=$(weeks[j]); if(b) b.value = String(ui.week); }
+}catch(e){} }
+function hookBadgeEditor(){
+  try{
+    var b = $('wkBadge'); if(!b) return;
+    b.style.cursor = 'pointer';
+    b.title = 'Cliquer pour modifier la semaine/année globale';
+    b.onclick = function(){
+      var cur = 'S'+pad2(ui.week)+' · '+ui.year;
+      var txt = prompt("Semaine ISO et année (ex: 'S36 · 2025' ou '36 2025')", cur);
+      if(!txt) return;
+      var wm = txt.match(/S?\s*(\d{1,2})/i);
+      var ym = txt.match(/(19\d{2}|20\d{2})/);
+      var nw = wm ? parseInt(wm[1],10) : ui.week;
+      var ny = ym ? parseInt(ym[1],10) : ui.year;
+      setWeekYear(nw, ny);
+      try{ syncWeekControls(); if(window.refreshActivePage) refreshActivePage(); else renderAccueil(); }catch(e){}
+    };
+  }catch(e){}
+}
+
+buildTabs();
+// Initialize UI from persisted state
+syncWeekControls();
+updateBadge();
+hookBadgeEditor();
+})();</script></body></html>
+
+ 
