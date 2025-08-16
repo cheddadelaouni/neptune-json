@@ -573,8 +573,10 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
   function save(){
 try{ writeEmbed(data);
 }catch(e){}
-  try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
+  /* localStorage main store disabled: using central JSON */
   try{ if(window.__neptuneAutosave){ saveHtmlToDisk(); } }catch(e){}
+  try{ if(window.__remoteSave) window.__remoteSave(); }catch(e){}
+
 }
 
 // === Persistance dans le fichier (HTML) — via <script id="NEPTUNE_EMBED"> + File System Access API ===
@@ -3051,22 +3053,58 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   }
   async function jsPut(obj){ 
     const u = FIXED_URI+(FIXED_URI.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY);
-    const r = await fetch(u,{method:'PUT',headers:{'Content-Type':'application/json'}
-// --- Remote autosave (debounced) ---
-let __pushTimer = null;
-window.__remoteSave = function(){
-  try{ if(__pushTimer) clearTimeout(__pushTimer); }catch(_){}
-  __pushTimer = setTimeout(async ()=>{
+    const r = await fetch(u,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj,null,2)});
+    if(!r.ok) throw new Error('PUT '+r.status);
+    return r.json();
+  }
+
+  async function simplePull(){ 
     try{
-      if(typeof window.stamp==='function') stamp();
-      await jsPut(window.data||{});
-      status('Autosauvegarde distante OK');
-    }catch(e){
-      console.warn(e);
-      status('Autosauvegarde distante: échec');
-    }
-  }, 700);
-};
+      const remote = await jsGet();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
+      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+      else status('Déjà à jour');
+    }catch(e){ console.warn(e); status('Échec lecture'); }
+  }
+  async function simplePush(){ 
+    try{ if(typeof window.save==='function') window.save(); stamp(); await jsPut(window.data||{}); status('Données poussées'); }
+    catch(e){ console.warn(e); status('Échec écriture'); }
+  }
+
+  function bind(){
+    const pull = document.getElementById('btnSimplePull');
+    const push = document.getElementById('btnSimplePush');
+    if(pull && !pull.__bound){ pull.__bound=true; pull.addEventListener('click', simplePull); }
+    if(push && !push.__bound){ push.__bound=true; push.addEventListener('click', simplePush); }
+  }
+
+  // Autosync: every 5 minutes (pull)
+  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>simplePull().catch(()=>{}); tick(); t=setInterval(tick,5*60*1000); }
+
+  // Init now and also when user navigates tabs
+  document.addEventListener('DOMContentLoaded', function(){ bind(); startTimer(); });
+  const tabs = document.getElementById('tabs'); if(tabs) tabs.addEventListener('click', ()=>setTimeout(bind,0));
+}
+
+// --- Remote autosave (debounced) ---
+(function(){
+  let __pushTimer = null;
+  window.__remoteSave = function(){
+    try{ if(__pushTimer) clearTimeout(__pushTimer); }catch(_){}
+    __pushTimer = setTimeout(async ()=>{
+      try{
+        if(typeof window.stamp==='function') stamp();
+        await jsPut(window.data||{});
+        if(typeof status==='function') status('Autosauvegarde distante OK');
+      }catch(e){
+        console.warn(e);
+        if(typeof status==='function') status('Autosauvegarde distante: échec');
+      }
+    }, 700);
+  };
+})();
+;
 ,body:JSON.stringify(obj,null,2)});
     if(!r.ok) throw new Error('PUT '+r.status);
     return r.json();
