@@ -559,6 +559,7 @@ button.btn-ok{background:var(--ok);border-color:#2a9d7f;color:#eafff7}
         </div>
         <div class="controls" style="justify-content:flex-end">
           <button id="btnSimplePush" class="btn-ok">Pousser →</button>
+          <button id="btnReset" type="button" class="btn danger">Réinitialiser</button>
         </div>
       </div>
       <div class="hint" id="simpleSaveStatus">Synchronise avec un JSON distant (URL fixe + API key).</div>
@@ -2839,6 +2840,21 @@ function renderOncalls(){
   /* ====== Save / Import ====== */
   function buildSave(){
 
+    // Injecte le bouton "Réinitialiser" juste après Import/Export si absent
+(function(){
+  var ref = document.getElementById('btnImport') || document.getElementById('btnExport');
+  if (!document.getElementById('btnReset') && ref){
+    var b = document.createElement('button');
+    b.id = 'btnReset';
+    b.type = 'button';
+    b.className = 'btn danger';
+    b.textContent = 'Réinitialiser';
+    ref.insertAdjacentElement('afterend', b);
+    console.log('btnReset injecté');
+  } else {
+    console.log('btnReset déjà présent ou point d’ancrage introuvable');
+  }
+})();
     
     // Expose helpers for JsonStorage parity
     try{ window.__neptuneMigrateData = migrateData; window.__neptuneSummarizeData = summarizeData; }catch(e){}
@@ -3277,6 +3293,28 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   }
   document.addEventListener('DOMContentLoaded', bind);
 })();
+  
+  // Ne plante plus si btnReset est absent au moment du bind
+(function(){
+  var $ = id => document.getElementById(id);
+  var el = $('btnReset');
+  if (el) {
+    // Si ton code source rebinde déjà, tu peux ne rien faire ici.
+    // Sinon, voici un handler de secours :
+    el.onclick = function(){
+      if(!confirm('Tout réinitialiser ?')) return;
+      try {
+        if (typeof KEY === 'string') localStorage.removeItem(KEY);
+        else localStorage.clear(); // fallback si KEY inconnu (optionnel)
+      } catch(_) {}
+      location.reload();
+    };
+    console.log('Handler de secours appliqué sur btnReset');
+  } else {
+    console.warn('btnReset toujours manquant — vérifie l’injection ci-dessus');
+  }
+})();
+
 </script>
 
 </body></html>
