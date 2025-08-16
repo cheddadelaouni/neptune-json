@@ -3178,96 +3178,112 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 </script>
 
 
-
-
-
 <script>
-(function(){
+(() => {
   "use strict";
 
-  /* ====== CONFIG (utilise l'URL QUI A DÉJÀ MARCHÉ) ====== */
-  var API_KEY  = '1c5f1698-c8f7-4992-988a-d1ae29cb35ee';
-  var URI      = 'https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c'; // <- LONG_URI OK
+  /* ====== CONFIG (valeurs qui marchent déjà chez toi) ====== */
+  const API_KEY = '1c5f1698-c8f7-4992-988a-d1ae29cb35ee';
+  const URI     = 'https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c';
+  const VERIFY_AFTER_PUSH = true; // passe à false si tu ne veux pas relire pour vérifier
 
-  /* ====== HELPERS ====== */
-  function withKey(u){ return u + (u.indexOf('?')>-1?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY); }
-  function now(){ try{ return new Date().toLocaleTimeString(); }catch(_){ return ''; } }
+  /* ====== HELPERS UI / META ====== */
+  const withKey = (u) => u + (u.includes('?') ? '&' : '?') + 'apiKey=' + encodeURIComponent(API_KEY);
+  const now     = () => { try { return new Date().toLocaleTimeString(); } catch(_) { return ''; } };
   function status(msg){
-    var el = document.getElementById('simpleSaveStatus') || document.getElementById('barStatus');
-    if(el) el.textContent = msg + (now()?(' ('+now()+')'):'');
+    const el = document.getElementById('simpleSaveStatus') || document.getElementById('barStatus');
+    if (el) el.textContent = msg + (now() ? (' ('+now()+')') : '');
+  }
+  function deviceId(){
+    try{
+      let id = localStorage.getItem('neptune-device');
+      if(!id){ id = Math.random().toString(36).slice(2)+'-'+Date.now().toString(36); localStorage.setItem('neptune-device', id); }
+      return id;
+    }catch(_){ return 'device'; }
   }
   function stamp(){
     try{
-      if(!window.data || typeof window.data!=='object') window.data = {};
-      if(!window.data.__meta) window.data.__meta = {};
+      if (!window.data || typeof window.data !== 'object') window.data = {};
+      if (!window.data.__meta) window.data.__meta = {};
       window.data.__meta.updatedAt = new Date().toISOString();
+      window.data.__meta.by        = deviceId();
     }catch(_){}
   }
   function applyImported(j){
-    try{ if(window.__neptuneMigrateData) j = window.__neptuneMigrateData(j); }catch(_){}
+    try{ if (window.__neptuneMigrateData) j = window.__neptuneMigrateData(j); }catch(_){}
     window.data = j || {};
-    try{ if(typeof window.save==='function') window.save(); }catch(_){}
+    try{ if (typeof window.save === 'function') window.save(); }catch(_){}
     try{
-      if(typeof window.refreshActivePage==='function') window.refreshActivePage();
-      else if(typeof window.renderAccueil==='function') window.renderAccueil();
+      if (typeof window.refreshActivePage === 'function') window.refreshActivePage();
+      else if (typeof window.renderAccueil === 'function') window.renderAccueil();
     }catch(_){}
-    try{ if(window.__neptuneSummarizeData) window.__neptuneSummarizeData(window.data); }catch(_){}
+    try{ if (window.__neptuneSummarizeData) window.__neptuneSummarizeData(window.data); }catch(_){}
   }
 
-  /* ====== I/O JsonStorage (toujours avec apiKey) ====== */
-  function jsGet(){
-    return fetch(withKey(URI), { method:'GET', cache:'no-cache' }).then(function(r){
-      if(!r.ok) return r.text().then(function(t){ throw new Error('GET '+r.status+' — '+t.slice(0,200)); });
-      return r.json();
-    });
+  /* ====== I/O JsonStorage (PUT attendu, GET no-store + cache-busting) ====== */
+  async function jsGet(){
+    const url = withKey(URI) + '&_ts=' + Date.now();
+    const r = await fetch(url, { method:'GET', cache:'no-store', headers:{ 'Cache-Control':'no-cache' } });
+    if (!r.ok) throw new Error('GET '+r.status);
+    return r.json();
   }
-  function jsPut(obj){
-    return fetch(withKey(URI), {
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(obj==null?{}:obj),
-      cache:'no-store'
-    }).then(function(r){
-      if(!r.ok) return r.text().then(function(t){ throw new Error('PUT '+r.status+' — '+t.slice(0,200)); });
-      return true;
+  async function jsPut(obj){
+    const r = await fetch(withKey(URI), {
+      method: 'PUT',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify(obj ?? {}),
+      cache: 'no-store'
     });
+    if (!r.ok) throw new Error('PUT '+r.status);
+    return true; // on ne résout qu'une fois l'écriture confirmée
   }
 
   /* ====== Actions (même logique que Import/Export JSON) ====== */
-  function simplePull(){
-    status('Lecture…');
-    jsGet().then(function(remote){
+  async function simplePull(){
+    try{
+      status('Lecture…');
+      const remote = await jsGet();
       applyImported(remote);
       status('Chargé depuis JsonStorage');
-    }).catch(function(e){
+    }catch(e){
       console.warn(e);
-      status('Échec lecture : '+e.message);
-    });
-  }
-  function simplePush(){
-    status('Préparation…');
-    try{ if(typeof window.save==='function') window.save(); }catch(_){}
-    stamp();
-    status('Écriture…');
-    jsPut(window.data).then(function(){
-      status('Enregistré sur JsonStorage ✅');
-    }).catch(function(e){
-      console.warn(e);
-      status('Échec écriture : '+e.message);
-    });
+      status('Échec lecture : ' + (e.message || e));
+    }
   }
 
-  /* ====== Bind UI sans planter si un ID manque ====== */
+  async function simplePush(){
+    try{
+      status('Préparation…');
+      try{ if (typeof window.save === 'function') window.save(); }catch(_){}
+      stamp();
+      status('Écriture…');
+      await jsPut(window.data); // ⬅️ attend VRAIMENT la fin du PUT
+
+      if (VERIFY_AFTER_PUSH){
+        const back = await jsGet(); // relit pour prouver l’écriture
+        const ok = !!(back && back.__meta && window.data && window.data.__meta &&
+                      back.__meta.updatedAt === window.data.__meta.updatedAt);
+        status(ok ? 'Enregistré (vérifié) ✅' : 'Enregistré (à vérifier)');
+      } else {
+        status('Enregistré sur JsonStorage ✅');
+      }
+    }catch(e){
+      console.warn(e);
+      status('Échec écriture : ' + (e.message || e));
+    }
+  }
+
+  /* ====== Bind UI (ne plante pas si un ID manque) ====== */
   function bindClick(id, fn){
-    var el = document.getElementById(id);
-    if(el && !el.__bound){ el.__bound = true; el.addEventListener('click', fn); }
-    else if(!el){ console.warn('[JsonStorage] Bouton manquant :', id); }
+    const el = document.getElementById(id);
+    if (el && !el.__bound){ el.__bound = true; el.addEventListener('click', fn); }
+    else if (!el){ console.warn('[JsonStorage] Bouton manquant :', id); }
   }
   bindClick('btnSimplePull', simplePull);
   bindClick('btnSimplePush', simplePush);
 
   /* ====== Expose pour tests console ====== */
-  window.__jsonstorage = { URI:URI, API_KEY:API_KEY, simplePull:simplePull, simplePush:simplePush, jsGet:jsGet, jsPut:jsPut };
+  window.__jsonstorage = { URI, API_KEY, simplePull, simplePush, jsGet, jsPut };
 })();
 </script>
 </body></html>
