@@ -104,6 +104,13 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
 #authCard .row{margin:8px 0}
 #authErr{color:#ffd0d0;font-size:12px;min-height:16px}
 
+
+/* === Save tab refinements === */
+button.btn-primary{background:#1a49ad;border-color:#3a60c7;color:#fff}
+button.btn-ok{background:var(--ok);border-color:#2a9d7f;color:#eafff7}
+.save-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:960px){.save-grid{grid-template-columns:1fr}}
+#saveHint{background:#0e2458;border:1px solid #22408f;border-radius:10px;padding:10px;min-height:42px;display:flex;align-items:center}
 </style>
 </head>
 <body>
@@ -508,35 +515,57 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
   </section>
 
   <!-- Sauvegarde -->
-  <section id="page-save" class="">
-    <div class="card"><div class="card-h"><div>Sauvegarde</div></div>
-      <div class="card-b"><button id="btnExport" class="ghost">Exporter JSON</button>
-        <input id="fileImport" type="file" accept="application/json">
-        <button id="btnImport">Importer JSON</button>
-        <button id="btnReset" class="ghost" style="margin-left:10px">Réinitialiser</button>
-        <hr class="soft">
-        <div class="small">Enregistrer <b>directement dans ce fichier HTML</b> (nécessite Chrome/Edge récents).</div>
-        <div class="controls">
-          <button id="btnPickHtml">Choisir ce fichier pour l'autosauvegarde</button>
-          <button id="btnSaveHtmlNow" class="ghost">Enregistrer maintenant</button>
-        </div>
-        <div class="hint" id="saveHint">Autosauvegarde activée sur ce fichier.</div></div>
-    </div>
   
-    <!-- Neptune: bloc de sauvegarde centralisée (JsonStorage) -->
-    <div class="card" id="simpleSaveWrap">
-      <div class="card-h"><div>Sauvegarde centralisée (JsonStorage)</div></div>
-      <div class="card-b">
-        <div class="controls">
-          <button id="btnSimplePull" class="ghost">← Recharger</button>
-          <button id="btnSimplePush">Pousser →</button>
-          <span class="small" style="margin-left:10px">Autosync 5 min</span>
-        </div>
-        <div class="hint" id="simpleSaveStatus">—</div>
-      </div>
-    </div>
+<section id="page-save" class="">
+  <div class="card">
+    <div class="card-h"><div>Sauvegarde</div></div>
+    <div class="card-b">
 
-  </section>
+      <div class="save-grid">
+        <!-- Export / Import JSON -->
+        <div>
+          <label>Export / Import JSON</label>
+          <div class="controls">
+            <button id="btnExport" class="btn-primary">Exporter JSON</button>
+            <input id="fileImport" type="file" accept="application/json" style="display:none">
+            <button id="btnImport">Importer JSON</button>
+          </div>
+          <div class="hint">Conseillé pour migrer les données d’une machine à l’autre.</div>
+        </div>
+
+        <!-- Autosauvegarde dans le fichier -->
+        <div>
+          <label>Autosauvegarde dans le fichier</label>
+          <div class="controls">
+            <button id="btnPickHtml">Choisir ce fichier pour l’autosauvegarde</button>
+            <button id="btnSaveHtmlNow" class="btn-ok">Enregistrer maintenant</button>
+          </div>
+          <div class="hint">Si votre navigateur ne supporte pas, utilisez l’export JSON.</div>
+        </div>
+      </div>
+
+      <hr class="soft">
+
+      <!-- Sauvegarde centralisée (JsonStorage) -->
+      <label>Sauvegarde centralisée (JsonStorage)</label>
+      <div class="save-grid" style="align-items:center">
+        <div class="controls" style="align-items:center">
+          <div class="item" style="flex:1;min-width:260px">
+            <div id="saveHint">—</div>
+          </div>
+          <div class="item">
+            <button id="btnSimplePull" class="ghost">← Recharger</button>
+          </div>
+        </div>
+        <div class="controls" style="justify-content:flex-end">
+          <button id="btnSimplePush" class="btn-ok">Pousser →</button>
+        </div>
+      </div>
+      <div class="hint" id="simpleSaveStatus">Synchronise avec un JSON distant (URL fixe + API key).</div>
+    </div>
+  </div>
+</section>
+
 </div>
 
 <script>
@@ -2809,7 +2838,110 @@ function renderOncalls(){
 
   /* ====== Save / Import ====== */
   function buildSave(){
-  $('btnExport').onclick=function(){
+
+    
+    // Expose helpers for JsonStorage parity
+    try{ window.__neptuneMigrateData = migrateData; window.__neptuneSummarizeData = summarizeData; }catch(e){}
+// --- Import helpers: migrate schema + summarize ---
+    function migrateData(j){
+      if(!j || typeof j!=='object') return null;
+      const out = Object.assign({}, j);
+      if(!Array.isArray(out.specialties)) out.specialties = out.specialties || [];
+      if(!Array.isArray(out.practitioners)) out.practitioners = out.practitioners || [];
+      if(!Array.isArray(out.interns)) out.interns = out.interns || [];
+      if(!Array.isArray(out.rooms)) out.rooms = out.rooms || [];
+      if(typeof out.absences!=='object' || !out.absences) out.absences = {};
+      if(typeof out.absencesIntern!=='object' || !out.absencesIntern) out.absencesIntern = {};
+      if(typeof out.guards!=='object' || !out.guards) out.guards = {};
+      if(typeof out.guardsIntern!=='object' || !out.guardsIntern) out.guardsIntern = {};
+      if(typeof out.oncalls!=='object' || !out.oncalls) out.oncalls = {};
+      if(typeof out.overrides!=='object' || !out.overrides) out.overrides = {};
+      // Compat: anciens noms éventuels
+      if(Array.isArray(out.praticiens) && !out.practitioners) out.practitioners = out.praticiens;
+      if(Array.isArray(out.internes) && !out.interns) out.interns = out.internes;
+      if(Array.isArray(out.salles) && !out.rooms) out.rooms = out.salles;
+      if(Array.isArray(out.specialites) && !out.specialties) out.specialties = out.specialites;
+      if(out.abs && !out.absences) out.absences = out.abs;
+      if(out.absI && !out.absencesIntern) out.absencesIntern = out.absI;
+      if(out.gardes && !out.guards) out.guards = out.gardes;
+      if(out.gardesIntern && !out.guardsIntern) out.guardsIntern = out.gardesIntern;
+      if(out.astreintes && !out.oncalls) out.oncalls = out.astreintes;
+      // Normalise schedules sur les rooms
+      for(var i=0;i<out.rooms.length;i++){
+        var r = out.rooms[i];
+        if(!r.schedule){ r.schedule = {}; }
+      }
+      return out;
+    }
+    function summarizeData(d){
+      try{
+        var s = [
+          'Spécialités: '+(d.specialties?d.specialties.length:0),
+          'Praticiens: '+(d.practitioners?d.practitioners.length:0),
+          'Internes: '+(d.interns?d.interns.length:0),
+          'Salles: '+(d.rooms?d.rooms.length:0),
+          'Absences (semaines): '+(d.absences?Object.keys(d.absences).length:0),
+          'Absences internes (semaines): '+(d.absencesIntern?Object.keys(d.absencesIntern).length:0),
+          'Gardes (semaines): '+(d.guards?Object.keys(d.guards).length:0),
+          'Gardes internes (semaines): '+(d.guardsIntern?Object.keys(d.guardsIntern).length:0),
+          'Astreintes (semaines): '+(d.oncalls?Object.keys(d.oncalls).length:0)
+        ].join(' · ');
+        var hint = document.getElementById('saveHint') || document.getElementById('simpleSaveStatus');
+        if(hint) hint.textContent = 'Import: ' + s;
+      }catch(e){}
+    }
+    // --- End helpers ---
+
+    // --- Patch Import JSON (strict single-wire) ---
+    try{
+      var __impBtn = $('btnImport');
+      var __impInp = $('fileImport');
+      if(__impBtn && __impInp && !__impInp.__wiredStrict){
+        __impInp.__wiredStrict = true;
+        // Neutralise l'ancien onclick (qui attend un fichier déjà sélectionné)
+        try{ __impBtn.onclick = null; }catch(_){}
+        // Ouvre le sélecteur au clic
+        __impBtn.addEventListener('click', function(ev){
+          try{ ev.preventDefault(); ev.stopPropagation(); }catch(_){}
+          try{ __impInp.click(); }catch(_){}
+        }, { once:false });
+        // Import au changement du fichier (une seule fois)
+        __impInp.addEventListener('change', function(){
+          try{
+            var f = __impInp.files && __impInp.files[0];
+            if(!f) return;
+            var r = new FileReader();
+            r.onload = async function(){
+              try{
+                var j = JSON.parse(String(r.result||'{}'));
+                j = migrateData(j);
+                summarizeData(j);
+                data = j; save();
+                // Refresh immédiat de la vue
+                try{
+                  if(typeof refreshActivePage==='function') refreshActivePage();
+                  else if(typeof renderAccueil==='function') renderAccueil();
+                }catch(_){}
+                // Sauvegarde dans le HTML si activée
+                try{
+                  if(window.__neptuneAutosave && typeof saveHtmlToDisk==='function'){
+                    await saveHtmlToDisk();
+                  }
+                }catch(_){}
+              }catch(e){
+                console.warn(e); alert('Import invalide');
+              }finally{
+                try{ __impInp.value=''; }catch(_){}
+              }
+            };
+            r.readAsText(f);
+          }catch(e){ console.warn(e); }
+        }, { once:false });
+      }
+    }catch(e){}
+    // --- End patch ---
+
+$('btnExport').onclick=function(){
     var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='Neptune_backup.json'; a.click(); URL.revokeObjectURL(a.href);
   };
@@ -3031,6 +3163,11 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 
 
 
+
+
+
+
+
 <script>
 (function(){"use strict";
   const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
@@ -3056,28 +3193,26 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     return r.json();
   }
 
-  async function simplePull(){
-  try{
-    const remote = await jsGet();
-    let j = (typeof window.migrateData==='function') ? window.migrateData(remote) : remote;
-    window.data = j;
-    if(typeof window.save==='function') window.save();
-    try{ if(typeof window.summarizeData==='function') window.summarizeData(j); }catch(_){}
-    try{ if(typeof window.refreshActivePage==='function') window.refreshActivePage(); else if(typeof window.renderAccueil==='function') window.renderAccueil(); }catch(_){}
-    status('Données chargées depuis JsonStorage');
-  }catch(e){ console.warn(e); status('Échec lecture'); }
-}catch(_){} }
+  async function simplePull(){ 
+    try{
+      const remote = await jsGet();
+      let merged = remote;
+      try{
+        if(window.__neptuneMigrateData) merged = window.__neptuneMigrateData(remote);
+        if(window.__neptuneSummarizeData) window.__neptuneSummarizeData(merged);
+      }catch(_){}
+      window.data = merged;
+      if(typeof window.save==='function') window.save();
+      try{ if(window.__neptuneAutosave && typeof saveHtmlToDisk==='function'){ await saveHtmlToDisk(); } }catch(_){ }
+      status('Mise à jour tirée');
+      try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){}
+    }catch(e){ console.warn(e); status('Échec lecture'); }
+  }catch(_){} }
       else status('Déjà à jour');
     }catch(e){ console.warn(e); status('Échec lecture'); }
   }
-  async function simplePush(){
-  try{
-    if(typeof window.save==='function') window.save();
-    stamp();
-    await jsPut(window.data||{});
-    status('Données enregistrées sur JsonStorage');
-  }catch(e){ console.warn(e); status('Échec écriture'); }
-}); status('Données poussées'); }
+  async function simplePush(){ 
+    try{ if(typeof window.save==='function') window.save(); stamp(); await jsPut(window.data||{}); status('Données poussées'); }
     catch(e){ console.warn(e); status('Échec écriture'); }
   }
 
@@ -3095,47 +3230,4 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   document.addEventListener('DOMContentLoaded', function(){ bind(); startTimer(); });
   const tabs = document.getElementById('tabs'); if(tabs) tabs.addEventListener('click', ()=>setTimeout(bind,0));
 })();
-</script>
-
-
-<script>
-// Helpers globaux (non intrusifs) pour unifier la logique Import/JsonStorage
-(function(){
-  function ensure(obj, def){ return (obj && typeof obj==='object') ? obj : def; }
-  window.migrateData = function(j){
-    j = j || {};
-    var d = Object.assign({}, j);
-    d.specialties   = Array.isArray(d.specialties)   ? d.specialties   : (Array.isArray(d.specialites)? d.specialites: []);
-    d.practitioners = Array.isArray(d.practitioners) ? d.practitioners : (Array.isArray(d.praticiens) ? d.praticiens : []);
-    d.interns       = Array.isArray(d.interns)       ? d.interns       : (Array.isArray(d.internes)   ? d.internes   : []);
-    d.rooms         = Array.isArray(d.rooms)         ? d.rooms         : (Array.isArray(d.salles)     ? d.salles     : []);
-    d.absences       = ensure(d.absences, {});        if(d.abs) d.absences = ensure(d.abs, {});
-    d.absencesIntern = ensure(d.absencesIntern, {});  if(d.absI) d.absencesIntern = ensure(d.absI, {});
-    d.guards         = ensure(d.guards, {});          if(d.gardes) d.guards = ensure(d.gardes, {});
-    d.guardsIntern   = ensure(d.guardsIntern, {});    if(d.gardesIntern) d.guardsIntern = ensure(d.gardesIntern, {});
-    d.oncalls        = ensure(d.oncalls, {});         if(d.astreintes) d.oncalls = ensure(d.astreintes, {});
-    d.overrides      = ensure(d.overrides, {});
-    for(var i=0;i<d.rooms.length;i++){ var r=d.rooms[i]; if(!r.schedule) r.schedule={}; }
-    return d;
-  };
-  window.summarizeData = function(d){
-    try{
-      var s = [
-        'Spécialités: '+(d.specialties?d.specialties.length:0),
-        'Praticiens: '+(d.practitioners?d.practitioners.length:0),
-        'Internes: '+(d.interns?d.interns.length:0),
-        'Salles: '+(d.rooms?d.rooms.length:0),
-        'Absences(sems): '+Object.keys(d.absences||{}).length,
-        'AbsI(sems): '+Object.keys(d.absencesIntern||{}).length,
-        'Gardes(sems): '+Object.keys(d.guards||{}).length,
-        'GardesI(sems): '+Object.keys(d.guardsIntern||{}).length,
-        'Astreintes(sems): '+Object.keys(d.oncalls||{}).length
-      ].join(' · ');
-      var hint = document.getElementById('saveHint') || document.getElementById('simpleSaveStatus');
-      if(hint) hint.textContent = 'Import: ' + s;
-    }catch(e){}
-  };
-})();
-</script>
-
-</body></html>
+</script></body></html>
