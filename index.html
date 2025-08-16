@@ -3167,67 +3167,130 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 
 
 
-
 <script>
-(function(){"use strict";
+(function () {
+  "use strict";
+
+  // === Config JsonStorage (garde tes valeurs) ===
   const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
   const API_KEY   = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
 
+  // --- UI status helper ---
   function status(msg){
     const el = document.getElementById('simpleSaveStatus');
     if(el) el.textContent = msg + " (" + new Date().toLocaleTimeString() + ")";
   }
-  function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
-  function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
 
-  async function jsGet(){ 
-    let r = await fetch(FIXED_URI,{method:'GET',cache:'no-cache'});
-    if(r.status===401||r.status===403) r = await fetch(FIXED_URI+(FIXED_URI.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY),{method:'GET',cache:'no-cache'});
+  // --- métadonnées légères (comme export) ---
+  function deviceId(){
+    try{
+      let id = localStorage.getItem('neptune-device');
+      if(!id){ id = Math.random().toString(36).slice(2)+'-'+Date.now().toString(36); localStorage.setItem('neptune-device', id); }
+      return id;
+    }catch(e){ return 'device'; }
+  }
+  function stamp(){
+    try{
+      if(!window.data) window.data = {};
+      if(!window.data.__meta) window.data.__meta = {};
+      window.data.__meta.updatedAt = new Date().toISOString();
+      window.data.__meta.by = deviceId();
+    }catch(e){}
+  }
+
+  // --- API JsonStorage ---
+  async function jsGet(){
+    // Essai sans clé puis avec clé si 401/403
+    let r = await fetch(FIXED_URI, {method:'GET', cache:'no-cache'});
+    if(r.status===401 || r.status===403){
+      const u = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+      r = await fetch(u, {method:'GET', cache:'no-cache'});
+    }
     if(!r.ok) throw new Error('GET '+r.status);
     return r.json();
   }
-  async function jsPut(obj){ 
-    const u = FIXED_URI+(FIXED_URI.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY);
-    const r = await fetch(u,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj,null,2)});
+  async function jsPut(obj){
+    const u = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+    const r = await fetch(u, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(obj, null, 2)
+    });
     if(!r.ok) throw new Error('PUT '+r.status);
     return r.json();
   }
 
-  async function simplePull(){ 
+  // --- Applique EXACTEMENT la même logique qu’un import JSON local ---
+  function applyImportedDataSameAsFileImport(obj){
+    // Priorité à applyImportedData si déjà défini par ton code d’import
+    if (typeof window.applyImportedData === 'function'){
+      window.applyImportedData(obj);
+      return;
+    }
+
+    // Sinon, on reproduit le pipeline Import JSON:
     try{
-      const remote = await jsGet();
-      let merged = remote;
-      try{
-        if(window.__neptuneMigrateData) merged = window.__neptuneMigrateData(remote);
-        if(window.__neptuneSummarizeData) window.__neptuneSummarizeData(merged);
-      }catch(_){}
-      window.data = merged;
-      if(typeof window.save==='function') window.save();
-      try{ if(window.__neptuneAutosave && typeof saveHtmlToDisk==='function'){ await saveHtmlToDisk(); } }catch(_){ }
-      status('Mise à jour tirée');
-      try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){}
-    }catch(e){ console.warn(e); status('Échec lecture'); }
-  }catch(_){} }
-      else status('Déjà à jour');
-    }catch(e){ console.warn(e); status('Échec lecture'); }
-  }
-  async function simplePush(){ 
-    try{ if(typeof window.save==='function') window.save(); stamp(); await jsPut(window.data||{}); status('Données poussées'); }
-    catch(e){ console.warn(e); status('Échec écriture'); }
+      // migrateData peut exister sous différents noms selon tes versions
+      const migrate = window.migrateData || window.__neptuneMigrateData;
+      if (typeof migrate === 'function') obj = migrate(obj);
+    }catch(_){}
+
+    // summarizeData / __neptuneSummarizeData (si dispo)
+    try{
+      const sum = window.summarizeData || window.__neptuneSummarizeData;
+      if (typeof sum === 'function') sum(obj);
+    }catch(_){}
+
+    // data = obj ; save() ; autosave (si activé) ; refresh UI
+    try{ window.data = obj; }catch(_){}
+    try{ if (typeof window.save === 'function') window.save(); }catch(_){}
+    try{
+      if (window.__neptuneAutosave && typeof window.saveHtmlToDisk === 'function'){
+        // non bloquant si échoue
+        window.saveHtmlToDisk().catch(()=>{});
+      }
+    }catch(_){}
+    try{
+      if (typeof window.refreshActivePage === 'function') window.refreshActivePage();
+      else if (typeof window.renderAccueil === 'function') window.renderAccueil();
+    }catch(_){}
   }
 
+  // --- Actions boutons ---
+  async function simplePull(){
+    try{
+      status('Lecture JsonStorage…');
+      const remote = await jsGet();
+      applyImportedDataSameAsFileImport(remote);
+      status('OK : données chargées');
+    }catch(e){
+      console.warn(e);
+      status('Échec lecture');
+    }
+  }
+
+  async function simplePush(){
+    try{
+      status('Écriture JsonStorage…');
+      // Comme Export: on persiste d’abord localement puis on pousse
+      if (typeof window.save === 'function') window.save();
+      stamp();
+      await jsPut(window.data || {});
+      status('OK : données poussées');
+    }catch(e){
+      console.warn(e);
+      status('Échec écriture');
+    }
+  }
+
+  // --- Bind UI (évite double-câblage) ---
   function bind(){
     const pull = document.getElementById('btnSimplePull');
     const push = document.getElementById('btnSimplePush');
-    if(pull && !pull.__bound){ pull.__bound=true; pull.addEventListener('click', simplePull); }
-    if(push && !push.__bound){ push.__bound=true; push.addEventListener('click', simplePush); }
+    if(pull && !pull.__bound){ pull.__bound = true; pull.addEventListener('click', simplePull); }
+    if(push && !push.__bound){ push.__bound = true; push.addEventListener('click', simplePush); }
   }
-
-  // Autosync: every 5 minutes (pull)
-  let t=null; function startTimer(){ if(t) clearInterval(t); const tick=()=>simplePull().catch(()=>{}); tick(); t=setInterval(tick,5*60*1000); }
-
-  // Init now and also when user navigates tabs
-  document.addEventListener('DOMContentLoaded', function(){ bind(); startTimer(); });
-  const tabs = document.getElementById('tabs'); if(tabs) tabs.addEventListener('click', ()=>setTimeout(bind,0));
+  document.addEventListener('DOMContentLoaded', bind);
 })();
-</script></body></html>
+</script>
+</body></html>
