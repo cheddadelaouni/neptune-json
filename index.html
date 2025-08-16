@@ -3181,140 +3181,93 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 
 
 
-
 <script>
-(function () {
+(function(){
   "use strict";
 
-  // === Config JsonStorage (garde ces valeurs si ce sont les tiennes) ===
-  const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
-  const API_KEY   = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
+  /* ====== CONFIG (utilise l'URL QUI A DÉJÀ MARCHÉ) ====== */
+  var API_KEY  = '1c5f1698-c8f7-4992-988a-d1ae29cb35ee';
+  var URI      = 'https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c'; // <- LONG_URI OK
 
-  // === DEV anti-CORS: si ouvert en file://, on passe par un proxy public (à éviter en prod) ===
-  const NEEDS_PROXY = (location.protocol === 'file:' || location.origin === 'null');
-  const PROXY = NEEDS_PROXY ? 'https://cors.isomorphic-git.org/' : '';
-  const withProxy = (u) => PROXY ? (PROXY + u) : u;
-
-  // --- UI status helper ---
+  /* ====== HELPERS ====== */
+  function withKey(u){ return u + (u.indexOf('?')>-1?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY); }
+  function now(){ try{ return new Date().toLocaleTimeString(); }catch(_){ return ''; } }
   function status(msg){
-    const el = document.getElementById('simpleSaveStatus');
-    if(el) el.textContent = msg + " (" + new Date().toLocaleTimeString() + ")";
-  }
-
-  // --- métadonnées légères (comme export) ---
-  function deviceId(){
-    try{
-      let id = localStorage.getItem('neptune-device');
-      if(!id){ id = Math.random().toString(36).slice(2)+'-'+Date.now().toString(36); localStorage.setItem('neptune-device', id); }
-      return id;
-    }catch(e){ return 'device'; }
+    var el = document.getElementById('simpleSaveStatus') || document.getElementById('barStatus');
+    if(el) el.textContent = msg + (now()?(' ('+now()+')'):'');
   }
   function stamp(){
     try{
-      if(!window.data) window.data = {};
+      if(!window.data || typeof window.data!=='object') window.data = {};
       if(!window.data.__meta) window.data.__meta = {};
       window.data.__meta.updatedAt = new Date().toISOString();
-      window.data.__meta.by = deviceId();
-    }catch(e){}
+    }catch(_){}
+  }
+  function applyImported(j){
+    try{ if(window.__neptuneMigrateData) j = window.__neptuneMigrateData(j); }catch(_){}
+    window.data = j || {};
+    try{ if(typeof window.save==='function') window.save(); }catch(_){}
+    try{
+      if(typeof window.refreshActivePage==='function') window.refreshActivePage();
+      else if(typeof window.renderAccueil==='function') window.renderAccueil();
+    }catch(_){}
+    try{ if(window.__neptuneSummarizeData) window.__neptuneSummarizeData(window.data); }catch(_){}
   }
 
-  // --- API JsonStorage ---
-  async function jsGet(){
-    // Essai sans clé puis avec clé si 401/403
-    let url = FIXED_URI;
-    let r = await fetch(withProxy(url), {method:'GET', cache:'no-cache'});
-    if(r.status===401 || r.status===403){
-      url = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
-      r = await fetch(withProxy(url), {method:'GET', cache:'no-cache'});
-    }
-    if(!r.ok) throw new Error('GET '+r.status);
-    return r.json();
+  /* ====== I/O JsonStorage (toujours avec apiKey) ====== */
+  function jsGet(){
+    return fetch(withKey(URI), { method:'GET', cache:'no-cache' }).then(function(r){
+      if(!r.ok) return r.text().then(function(t){ throw new Error('GET '+r.status+' — '+t.slice(0,200)); });
+      return r.json();
+    });
   }
-  async function jsPut(obj){
-    const url = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
-    const r = await fetch(withProxy(url), {
+  function jsPut(obj){
+    return fetch(withKey(URI), {
       method:'PUT',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(obj, null, 2)
+      body: JSON.stringify(obj==null?{}:obj),
+      cache:'no-store'
+    }).then(function(r){
+      if(!r.ok) return r.text().then(function(t){ throw new Error('PUT '+r.status+' — '+t.slice(0,200)); });
+      return true;
     });
-    if(!r.ok) throw new Error('PUT '+r.status);
-    return r.json();
   }
 
-  // --- Applique EXACTEMENT la logique de l’import fichier ---
-  function applyImportedDataSameAsFileImport(obj){
-    if (typeof window.applyImportedData === 'function'){ window.applyImportedData(obj); return; }
-    try{
-      if (typeof window.migrateData === 'function') obj = window.migrateData(obj);
-    }catch(_){}
-    try{
-      if (typeof window.summarizeData === 'function') window.summarizeData(obj);
-    }catch(_){}
-    try{ window.data = obj; }catch(_){}
-    try{ if (typeof window.save === 'function') window.save(); }catch(_){}
-    try{
-      if (typeof window.refreshActivePage === 'function') window.refreshActivePage();
-      else if (typeof window.renderAccueil === 'function') window.renderAccueil();
-    }catch(_){}
-  }
-
-  // --- Actions boutons ---
-  async function simplePull(){
-    try{
-      status('Lecture JsonStorage…');
-      const remote = await jsGet();
-      applyImportedDataSameAsFileImport(remote);
-      status('OK : données chargées');
-    }catch(e){
+  /* ====== Actions (même logique que Import/Export JSON) ====== */
+  function simplePull(){
+    status('Lecture…');
+    jsGet().then(function(remote){
+      applyImported(remote);
+      status('Chargé depuis JsonStorage');
+    }).catch(function(e){
       console.warn(e);
-      status(NEEDS_PROXY ? 'Échec lecture (proxy?)' : 'Échec lecture');
-    }
+      status('Échec lecture : '+e.message);
+    });
   }
-
-  async function simplePush(){
-    try{
-      status('Écriture JsonStorage…');
-      if (typeof window.save === 'function') window.save();
-      stamp();
-      await jsPut(window.data || {});
-      status('OK : données poussées');
-    }catch(e){
+  function simplePush(){
+    status('Préparation…');
+    try{ if(typeof window.save==='function') window.save(); }catch(_){}
+    stamp();
+    status('Écriture…');
+    jsPut(window.data).then(function(){
+      status('Enregistré sur JsonStorage ✅');
+    }).catch(function(e){
       console.warn(e);
-      status(NEEDS_PROXY ? 'Échec écriture (proxy?)' : 'Échec écriture');
-    }
+      status('Échec écriture : '+e.message);
+    });
   }
 
-  // --- Bind UI (évite double-câblage) ---
-  function bind(){
-    const pull = document.getElementById('btnSimplePull');
-    const push = document.getElementById('btnSimplePush');
-    if(pull && !pull.__bound){ pull.__bound = true; pull.addEventListener('click', simplePull); }
-    if(push && !push.__bound){ push.__bound = true; push.addEventListener('click', simplePush); }
+  /* ====== Bind UI sans planter si un ID manque ====== */
+  function bindClick(id, fn){
+    var el = document.getElementById(id);
+    if(el && !el.__bound){ el.__bound = true; el.addEventListener('click', fn); }
+    else if(!el){ console.warn('[JsonStorage] Bouton manquant :', id); }
   }
-  document.addEventListener('DOMContentLoaded', bind);
-})();
-  
-  // Ne plante plus si btnReset est absent au moment du bind
-(function(){
-  var $ = id => document.getElementById(id);
-  var el = $('btnReset');
-  if (el) {
-    // Si ton code source rebinde déjà, tu peux ne rien faire ici.
-    // Sinon, voici un handler de secours :
-    el.onclick = function(){
-      if(!confirm('Tout réinitialiser ?')) return;
-      try {
-        if (typeof KEY === 'string') localStorage.removeItem(KEY);
-        else localStorage.clear(); // fallback si KEY inconnu (optionnel)
-      } catch(_) {}
-      location.reload();
-    };
-    console.log('Handler de secours appliqué sur btnReset');
-  } else {
-    console.warn('btnReset toujours manquant — vérifie l’injection ci-dessus');
-  }
-})();
+  bindClick('btnSimplePull', simplePull);
+  bindClick('btnSimplePush', simplePush);
 
+  /* ====== Expose pour tests console ====== */
+  window.__jsonstorage = { URI:URI, API_KEY:API_KEY, simplePull:simplePull, simplePush:simplePush, jsGet:jsGet, jsPut:jsPut };
+})();
 </script>
-
 </body></html>
