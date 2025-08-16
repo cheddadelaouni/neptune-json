@@ -3034,7 +3034,11 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 <script>
 (function(){"use strict";
   const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
-  const API_KEY   = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee" (" + new Date().toLocaleTimeString() + ")";
+  const API_KEY   = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
+
+  function status(msg){
+    const el = document.getElementById('simpleSaveStatus');
+    if(el) el.textContent = msg + " (" + new Date().toLocaleTimeString() + ")";
   }
   function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
   function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
@@ -3052,17 +3056,28 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     return r.json();
   }
 
-  async function simplePull(){ 
-    try{
-      const remote = await jsGet();
-      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
-      const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
-      if(ru>lu){ window.data = remote; if(typeof window.save==='function') window.save(); status('Mise à jour tirée'); try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){} }
+  async function simplePull(){
+  try{
+    const remote = await jsGet();
+    let j = (typeof window.migrateData==='function') ? window.migrateData(remote) : remote;
+    window.data = j;
+    if(typeof window.save==='function') window.save();
+    try{ if(typeof window.summarizeData==='function') window.summarizeData(j); }catch(_){}
+    try{ if(typeof window.refreshActivePage==='function') window.refreshActivePage(); else if(typeof window.renderAccueil==='function') window.renderAccueil(); }catch(_){}
+    status('Données chargées depuis JsonStorage');
+  }catch(e){ console.warn(e); status('Échec lecture'); }
+}catch(_){} }
       else status('Déjà à jour');
     }catch(e){ console.warn(e); status('Échec lecture'); }
   }
-  async function simplePush(){ 
-    try{ if(typeof window.save==='function') window.save(); stamp(); await jsPut(window.data||{}); status('Données poussées'); }
+  async function simplePush(){
+  try{
+    if(typeof window.save==='function') window.save();
+    stamp();
+    await jsPut(window.data||{});
+    status('Données enregistrées sur JsonStorage');
+  }catch(e){ console.warn(e); status('Échec écriture'); }
+}); status('Données poussées'); }
     catch(e){ console.warn(e); status('Échec écriture'); }
   }
 
@@ -3079,6 +3094,47 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   // Init now and also when user navigates tabs
   document.addEventListener('DOMContentLoaded', function(){ bind(); startTimer(); });
   const tabs = document.getElementById('tabs'); if(tabs) tabs.addEventListener('click', ()=>setTimeout(bind,0));
+})();
+</script>
+
+
+<script>
+// Helpers globaux (non intrusifs) pour unifier la logique Import/JsonStorage
+(function(){
+  function ensure(obj, def){ return (obj && typeof obj==='object') ? obj : def; }
+  window.migrateData = function(j){
+    j = j || {};
+    var d = Object.assign({}, j);
+    d.specialties   = Array.isArray(d.specialties)   ? d.specialties   : (Array.isArray(d.specialites)? d.specialites: []);
+    d.practitioners = Array.isArray(d.practitioners) ? d.practitioners : (Array.isArray(d.praticiens) ? d.praticiens : []);
+    d.interns       = Array.isArray(d.interns)       ? d.interns       : (Array.isArray(d.internes)   ? d.internes   : []);
+    d.rooms         = Array.isArray(d.rooms)         ? d.rooms         : (Array.isArray(d.salles)     ? d.salles     : []);
+    d.absences       = ensure(d.absences, {});        if(d.abs) d.absences = ensure(d.abs, {});
+    d.absencesIntern = ensure(d.absencesIntern, {});  if(d.absI) d.absencesIntern = ensure(d.absI, {});
+    d.guards         = ensure(d.guards, {});          if(d.gardes) d.guards = ensure(d.gardes, {});
+    d.guardsIntern   = ensure(d.guardsIntern, {});    if(d.gardesIntern) d.guardsIntern = ensure(d.gardesIntern, {});
+    d.oncalls        = ensure(d.oncalls, {});         if(d.astreintes) d.oncalls = ensure(d.astreintes, {});
+    d.overrides      = ensure(d.overrides, {});
+    for(var i=0;i<d.rooms.length;i++){ var r=d.rooms[i]; if(!r.schedule) r.schedule={}; }
+    return d;
+  };
+  window.summarizeData = function(d){
+    try{
+      var s = [
+        'Spécialités: '+(d.specialties?d.specialties.length:0),
+        'Praticiens: '+(d.practitioners?d.practitioners.length:0),
+        'Internes: '+(d.interns?d.interns.length:0),
+        'Salles: '+(d.rooms?d.rooms.length:0),
+        'Absences(sems): '+Object.keys(d.absences||{}).length,
+        'AbsI(sems): '+Object.keys(d.absencesIntern||{}).length,
+        'Gardes(sems): '+Object.keys(d.guards||{}).length,
+        'GardesI(sems): '+Object.keys(d.guardsIntern||{}).length,
+        'Astreintes(sems): '+Object.keys(d.oncalls||{}).length
+      ].join(' · ');
+      var hint = document.getElementById('saveHint') || document.getElementById('simpleSaveStatus');
+      if(hint) hint.textContent = 'Import: ' + s;
+    }catch(e){}
+  };
 })();
 </script>
 
