@@ -3182,10 +3182,12 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 (() => {
   "use strict";
 
-  /* ====== CONFIG (valeurs qui marchent déjà chez toi) ====== */
+  /* ====== CONFIG (déjà validée chez toi) ====== */
   const API_KEY = '1c5f1698-c8f7-4992-988a-d1ae29cb35ee';
   const URI     = 'https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c';
-  const VERIFY_AFTER_PUSH = true; // passe à false si tu ne veux pas relire pour vérifier
+  const VERIFY_AFTER_PUSH = true;   // relit après push pour vérifier
+  const MIN_BYTES_SAFETY  = 2000;   // garde-fou pour éviter d’écraser avec un snapshot vide
+  const STORAGE_KEY       = (window && window.KEY) || 'neptune';
 
   /* ====== HELPERS UI / META ====== */
   const withKey = (u) => u + (u.includes('?') ? '&' : '?') + 'apiKey=' + encodeURIComponent(API_KEY);
@@ -3201,28 +3203,56 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
       return id;
     }catch(_){ return 'device'; }
   }
-  function stamp(){
+
+  /* ====== Sélectionne la source réelle des données ====== */
+  function resolveSource(){
+    // 1) Tente la variable globale "data" (utilisée par Export JSON)
     try{
-      if (!window.data || typeof window.data !== 'object') window.data = {};
-      if (!window.data.__meta) window.data.__meta = {};
-      window.data.__meta.updatedAt = new Date().toISOString();
-      window.data.__meta.by        = deviceId();
+      if (typeof data !== 'undefined' && data && typeof data === 'object') {
+        return { src: 'global:data', obj: data };
+      }
     }catch(_){}
+
+    // 2) Sinon window.data si structure Neptune plausible
+    if (window && window.data && typeof window.data === 'object') {
+      const d = window.data;
+      if ((Array.isArray(d.rooms) && d.rooms.length) ||
+          (Array.isArray(d.practitioners) && d.practitioners.length) ||
+          (Array.isArray(d.specialties) && d.specialties.length)) {
+        return { src: 'window.data', obj: d };
+      }
+    }
+
+    // 3) Sinon, fallback localStorage
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const j = JSON.parse(raw);
+        return { src: 'localStorage:'+STORAGE_KEY, obj: j };
+      }
+    }catch(_){}
+
+    // 4) Rien trouvé
+    return { src: 'empty', obj: {} };
   }
+
+  /* ====== Applique un JSON importé dans l’app (comme Import JSON) ====== */
   function applyImported(j){
     try{ if (window.__neptuneMigrateData) j = window.__neptuneMigrateData(j); }catch(_){}
+    // Mets à jour window.data ET essaie de mettre la globale data si elle existe
     window.data = j || {};
+    try{ data = window.data; }catch(_){}
     try{ if (typeof window.save === 'function') window.save(); }catch(_){}
     try{
       if (typeof window.refreshActivePage === 'function') window.refreshActivePage();
-      else if (typeof window.renderAccueil === 'function') window.renderAccueil();
+      else if (typeof window.renderAccueil   === 'function') window.renderAccueil();
     }catch(_){}
     try{ if (window.__neptuneSummarizeData) window.__neptuneSummarizeData(window.data); }catch(_){}
   }
 
-  /* ====== I/O JsonStorage (PUT attendu, GET no-store + cache-busting) ====== */
+  /* ====== I/O JsonStorage ====== */
   async function jsGet(){
-    const url = withKey(URI) + '&_ts=' + Date.now();
+    const url = withKey(URI) + '&_ts=' + Date.now(); // cache-bust
     const r = await fetch(url, { method:'GET', cache:'no-store', headers:{ 'Cache-Control':'no-cache' } });
     if (!r.ok) throw new Error('GET '+r.status);
     return r.json();
@@ -3235,7 +3265,42 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
       cache: 'no-store'
     });
     if (!r.ok) throw new Error('PUT '+r.status);
-    return true; // on ne résout qu'une fois l'écriture confirmée
+    return true;
+  }
+
+  /* ====== Construit le VRAI snapshot (comme Export JSON) ====== */
+  function makeSnapshotAndStamp(){
+    // synchro UI -> modèle
+    try{ if (typeof window.save === 'function') window.save(); }catch(_){}
+
+    const { src, obj } = resolveSource();
+
+    // timbre méta commun, copié à la fois dans la source et dans le snapshot
+    const ts = new Date().toISOString();
+    const by = deviceId();
+
+    // pose le timbre dans la source vivante…
+    try{
+      if (!obj.__meta) obj.__meta = {};
+      obj.__meta.updatedAt = ts;
+      obj.__meta.by        = by;
+    }catch(_){}
+
+    // …puis clone profond pour constituer le snapshot PUT
+    let snap = {};
+    try{ snap = JSON.parse(JSON.stringify(obj)); }catch(_){ snap = obj || {}; }
+    try{
+      if (!snap.__meta) snap.__meta = {};
+      snap.__meta.updatedAt = ts;
+      snap.__meta.by        = by;
+    }catch(_){}
+
+    // taille informative
+    let bytes = 0;
+    try{ bytes = (new TextEncoder()).encode(JSON.stringify(snap)).length; }
+    catch(_){ try{ bytes = JSON.stringify(snap).length; }catch(__){} }
+
+    return { snap, ts, src, bytes };
   }
 
   /* ====== Actions (même logique que Import/Export JSON) ====== */
@@ -3254,15 +3319,21 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   async function simplePush(){
     try{
       status('Préparation…');
-      try{ if (typeof window.save === 'function') window.save(); }catch(_){}
-      stamp();
+      const { snap, ts, src, bytes } = makeSnapshotAndStamp();
+
+      // Garde-fou : évite d’écraser le distant avec un dataset trop petit
+      if (bytes < MIN_BYTES_SAFETY) {
+        console.warn('[JsonStorage] Snapshot trop petit — push annulé. source=', src, 'bytes=', bytes);
+        status('Données locales insuffisantes — push annulé');
+        return;
+      }
+
       status('Écriture…');
-      await jsPut(window.data); // ⬅️ attend VRAIMENT la fin du PUT
+      await jsPut(snap);
 
       if (VERIFY_AFTER_PUSH){
-        const back = await jsGet(); // relit pour prouver l’écriture
-        const ok = !!(back && back.__meta && window.data && window.data.__meta &&
-                      back.__meta.updatedAt === window.data.__meta.updatedAt);
+        const back = await jsGet();
+        const ok = !!(back && back.__meta && back.__meta.updatedAt === ts);
         status(ok ? 'Enregistré (vérifié) ✅' : 'Enregistré (à vérifier)');
       } else {
         status('Enregistré sur JsonStorage ✅');
@@ -3282,8 +3353,18 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   bindClick('btnSimplePull', simplePull);
   bindClick('btnSimplePush', simplePush);
 
-  /* ====== Expose pour tests console ====== */
-  window.__jsonstorage = { URI, API_KEY, simplePull, simplePush, jsGet, jsPut };
+  /* ====== Outils console ====== */
+  window.__jsonstorage = {
+    URI, API_KEY, simplePull, simplePush, jsGet, jsPut,
+    resolveSource,
+    probe: async () => {
+      const { snap, ts } = makeSnapshotAndStamp();
+      snap.__probe_roundtrip = ts;
+      await jsPut(snap);
+      const back = await jsGet();
+      return { putStamp: ts, gotStamp: back && back.__probe_roundtrip, ok: (back && back.__probe_roundtrip) === ts };
+    }
+  };
 })();
 </script>
 </body></html>
