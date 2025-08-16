@@ -528,8 +528,8 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
       <div class="card-h"><div>Sauvegarde centralisée (JsonStorage)</div></div>
       <div class="card-b">
         <div class="controls">
-          <button id="btnSimplePull" class="ghost">← Recharger</button>
-          <button id="btnSimplePush">Pousser →</button>
+          <button id="btnSimplePull" type="button" class="ghost">← Recharger</button>
+          <button id="btnSimplePush" type="button">Pousser →</button>
           <span class="small" style="margin-left:10px">Autosync 5 min</span>
         </div>
         <div class="hint" id="simpleSaveStatus">—</div>
@@ -540,102 +540,500 @@ hr.soft{border:0;border-top:1px dashed var(--line);margin:12px 0}
 </div>
 
 
+<script>
+    // Ensure specFlags exists; default NRD->cinaps true for backward compatibility
+    try{
+      if(!data.specFlags) data.specFlags = {};
+      if(Array.isArray(data.specialties)){
+        for(var _i=0; _i<data.specialties.length; _i++){
+          var _s=data.specialties[_i];
+          if(!data.specFlags[_s]) data.specFlags[_s] = {tele:false, cinaps:false};
+        }
+      }
+      if(data.specialties && data.specialties.indexOf('NRD')!==-1){
+        data.specFlags['NRD'].cinaps = !!data.specFlags['NRD'].cinaps || true;
+      }
+    }catch(e){}
+</script>
+<script>
+// --- Correctif : refreshActivePage non récursif (synchronise bien l'Accueil) ---
+(function(){
+  window.refreshActivePage = function(){
+    try{
+      function vis(id){ var el=document.getElementById(id); return el && !/hidden/.test(el.className); }
+      if(vis('page-acc'))   return renderAccueil();
+      if(vis('page-prac'))  return renderPracPage();
+      if(vis('page-cal'))   return renderCalendar();
+      if(vis('page-absrep'))return renderAbsRep();
+      if(vis('page-week'))  return renderWeekType();
+      if(vis('page-abs'))   { try{renderAbs();renderAbsIntern();}catch(e){} return; }
+      if(vis('page-guard')) { try{renderGuards();renderGuardsIntern();}catch(e){} return; }
+      if(vis('page-oncall'))return renderOncalls();
+      if(vis('page-data'))  return renderDataPage();
+      if(vis('page-stats')) { try{renderStats();renderStatsIntern();initStatsAdvanced();}catch(e){} return; }
+    }catch(e){
+      try{ renderAccueil(); }catch(_){}
+    }
+  };
+})();
+</script>
 
-</body></html>
 
 <script>
-(function(){"use strict";
-
-// === CONFIG JsonStorage ===
-const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/1979d83c-f4b7-4e34-a4d8-bda3f1be9fd9";
-const API_KEY   = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
-
-// — Helpers d’état/horodatage —
-function status(msg){
-  const el = document.getElementById('simpleSaveStatus');
-  if (el) el.textContent = msg + " (" + new Date().toLocaleTimeString() + ")";
-}
-function deviceId(){try{let id=localStorage.getItem('neptune-device');if(!id){id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36);localStorage.setItem('neptune-device',id);}return id;}catch(e){return 'device';}}
-function stamp(){try{if(!window.data) window.data={}; if(!data.__meta) data.__meta={}; data.__meta.updatedAt=new Date().toISOString(); data.__meta.by=deviceId();}catch(e){}}
-
-// — API JsonStorage —
-async function jsGet(){
-  let r = await fetch(FIXED_URI,{method:'GET',cache:'no-cache'});
-  if (r.status===401||r.status===403) {
-    r = await fetch(FIXED_URI + (FIXED_URI.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY),{method:'GET',cache:'no-cache'});
-  }
-  if(!r.ok) throw new Error('GET '+r.status);
-  return r.json();
-}
-async function jsPut(obj){
-  const u = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
-  const r = await fetch(u,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj,null,2)});
-  if(!r.ok) throw new Error('PUT '+r.status);
-  return r.json();
-}
-
-// — Actions UI —
-async function simplePull(){
-  try{
-    const remote = await jsGet();
-    const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
-    const lu = window.data && data.__meta && Date.parse(data.__meta.updatedAt||'') || 0;
-    if(ru > lu){
-      window.data = remote;
-      if (typeof window.save==='function') window.save();
-      status('Mise à jour tirée');
-      try{ if(window.refreshActivePage) refreshActivePage(); }catch(_){}
-    }else{
-      status('Déjà à jour');
-    }
-  }catch(e){
-    console.warn(e); status('Échec lecture');
-  }
-}
-async function simplePush(){
-  try{
-    if (typeof window.save==='function') window.save();
-    stamp();
-    await jsPut(window.data||{});
-    status('Données poussées');
-  }catch(e){
-    console.warn(e); status('Échec écriture');
-  }
-}
-
-// — Raccordement des boutons —
-function bind(){
-  const pull = document.getElementById('btnSimplePull');
-  const push = document.getElementById('btnSimplePush');
-  if(pull && !pull.__bound){ pull.__bound=true; pull.addEventListener('click', simplePull); }
-  if(push && !push.__bound){ push.__bound=true; push.addEventListener('click', simplePush); }
-}
-
-// — Autosync toutes les 5 min (avec tirage initial) —
-let t=null;
-function startTimer(){ if(t) clearInterval(t); const tick=()=>simplePull().catch(()=>{}); tick(); t=setInterval(tick,5*60*1000); }
-
-// — Initialisation —
-document.addEventListener('DOMContentLoaded', function(){ bind(); startTimer(); });
-const tabs = document.getElementById('tabs'); if(tabs) tabs.addEventListener('click', ()=>setTimeout(bind,0));
-
-// — Autosauvegarde distante à chaque save() locale (debounced) —
 (function(){
+  try{
+    var ov = document.getElementById('authOverlay');
+    var form = document.getElementById('authCard');
+    var idEl = document.getElementById('authId');
+    var codeEl = document.getElementById('authCode');
+    var err = document.getElementById('authErr');
+    if(!ov || !form) return;
+    var OK = (sessionStorage.getItem('neptuneAuth') === 'ok');
+    if(OK){ ov.style.display='none'; try{var _rb=document.getElementById('roleBadge'); if(_rb){ var _r=sessionStorage.getItem('neptuneRole')||'admin'; _rb.textContent='Rôle: '+(_r==='admin'?'Administrateur':(_r==='senior'?'Sénior':'Interne')); }}catch(e){} }
+    else { ov.style.display='flex'; }
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      var id = (idEl && idEl.value || '').trim();
+      var code = (codeEl && codeEl.value || '').trim();
+      var low = id.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+      var role = null;
+      if(low === 'admin' && code === 'radiocb29!'){ role = 'admin'; }
+      else if((low === 'senior' || low === 'senior.' || low === 'senior ') && code === 'radiocb29'){ role = 'senior'; }
+      else if(low === 'interne' && code === 'radiocb'){ role = 'interne'; }
+      if(role){
+        sessionStorage.setItem('neptuneAuth','ok');
+        sessionStorage.setItem('neptuneRole', role);
+        sessionStorage.setItem('neptuneUser', id);
+        ov.style.display='none';
+        try{ var rb=document.getElementById('roleBadge'); if(rb) rb.textContent='Rôle: '+(role==='admin'?'Administrateur':(role==='senior'?'Sénior':'Interne')); }catch(e){}
+      }else{
+        if(err) err.textContent = 'Identifiants incorrects.';
+      }
+      return false;
+    }, true);
+  }catch(e){ /* noop */ }
+})();
+</script>
+
+<script>
+(function(){
+  window.getRole = function(){
+    try{ return sessionStorage.getItem('neptuneRole') || (sessionStorage.getItem('neptuneAuth')==='ok' ? 'admin' : 'interne'); }
+    catch(e){ return 'interne'; }
+  };
+  window.can = function(action){
+    var r = getRole();
+    if(r === 'admin') return true;
+    if(r === 'senior'){
+      return ['editAbsences','editGuards','editOncall','chooseReplacement','filters','navigate'].indexOf(action) >= 0;
+    }
+    return ['filters','navigate'].indexOf(action) >= 0; // interne
+  };
+  window.applyRoleLocks = function(){
+    try{
+      var r = getRole();
+      var active = document.querySelector('section:not(.hidden)');
+      if(!active) return;
+      if(r==='admin') return;
+      var pageId = active.id || '';
+      var allowSenior = (r==='senior');
+      
+      // Always allow navigation on the per-person planning pages
+      if(pageId==='page-prac' || pageId==='page-intern'){
+        // Keep replacement UI blocked by can('chooseReplacement'); other edits are not present here.
+        return;
+      }
+var nodes = active.querySelectorAll('input, select, textarea, button');
+      for(var i=0;i<nodes.length;i++){
+        var el = nodes[i];
+        var id = el.id || '';
+        var inTabs = !!(el.closest && el.closest('#tabs'));
+        var isFilter = /^acc|^cal|^month|^year|^week|^accMode|^calMode|^accPrev|^accNext|^accYear|^accWeek|^accMonth|^calYear|^calMonth/.test(id);
+        if(inTabs || isFilter){ continue; }
+        if(allowSenior){
+          if(pageId==='page-abs' || pageId==='page-absrep' || pageId==='page-guard' || pageId==='page-oncall'){ continue; }
+          if((active.querySelector('.rep-choice') || active.querySelector('.rep-ui')) && (el.classList && (el.classList.contains('rep-choice') || (el.closest && el.closest('.rep-ui'))))){ continue; }
+        }
+        el.disabled = true;
+        if(!el.title) el.title = 'Lecture seule';
+      }
+    }catch(e){}
+  };
+  try{
+    var rb=document.getElementById('roleBadge');
+    if(rb){
+      var role=getRole();
+      rb.textContent='Rôle: '+(role==='admin'?'Administrateur':(role==='senior'?'Sénior':(role==='interne'?'Interne':role)));
+    }
+  }catch(e){}
+})();
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- === Neptune: panneau de sauvegarde centrale (JsonStorage URI longue, éditable) === -->
+<style>
+  .nc-wrap{position:fixed;right:12px;bottom:12px;z-index:99999}
+  .nc-bar{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:8px 10px}
+  .nc-btn{padding:6px 10px;border-radius:8px;border:1px solid #ddd;background:#f7f7f7;cursor:pointer;font:13px system-ui}
+  .nc-btn.primary{background:#1a7f37;border-color:#1a7f37;color:#fff}
+  .nc-status{color:#333;margin-left:6px;font:13px system-ui}
+  .nc-drawer{position:absolute;right:0;bottom:56px;width:360px;max-width:92vw;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px 14px rgba(0,0,0,.12);padding:12px;display:none}
+  .nc-row{display:flex;gap:6px;align-items:center;margin:6px 0}
+  .nc-row input{flex:1;padding:8px;border:1px solid #e5e7eb;border-radius:8px;font:13px system-ui}
+  .nc-row label{font:12px system-ui;color:#555;min-width:90px}
+  .nc-help{font:12px system-ui;color:#667085}
+  .nc-link{font:12px system-ui;color:#2563eb;cursor:pointer;text-decoration:underline}
+</style>
+<div class="nc-wrap">
+  <div class="nc-bar">
+    <button class="nc-btn" id="nc-load">← Charger</button>
+    <button class="nc-btn primary" id="nc-save">Enregistrer →</button>
+    <button class="nc-btn" id="nc-opt">⚙️</button>
+    <button class="nc-btn" id="nc-restore">↩︎ Restaurer</button>
+    <span id="nc-status" class="nc-status">—</span>
+  </div>
+
+  <div class="nc-drawer" id="nc-drawer">
+    <div class="nc-row"><label>URI longue</label><input id="nc-uri" placeholder="https://api.jsonstorage.net/v1/json/USER/ITEM"></div>
+    <div class="nc-row"><label>Clé API</label><input id="nc-key" placeholder="clé avec Read+Modify"></div>
+    <div class="nc-row">
+      <button class="nc-btn" id="nc-savecfg">Enregistrer options</button>
+      <span class="nc-help">Conservé dans ce navigateur (localStorage).</span>
+    </div>
+    <div class="nc-row nc-help">Astuce : l’URI longue est celle renvoyée par le POST de JsonStorage (…/v1/json/<b>USER</b>/<b>ITEM</b>)</div>
+    <div class="nc-row"><span class="nc-link" id="nc-fill-defaults">Remplir avec les valeurs par défaut</span></div>
+  </div>
+</div>
+
+
+<!-- === /Neptune: panneau de sauvegarde === -->
+
+
+
+<!-- === BEGIN: Floating Sync Panel (corrected) === -->
+<style>
+#syncPanel{position:fixed;right:14px;bottom:14px;z-index:9999;max-width:360px}
+#syncPanel .card{background:linear-gradient(180deg, #102a5c 0%, #163a7e 100%);border:1px solid #2a4ea8;border-radius:12px;padding:10px;color:#e7f0ff;box-shadow:0 6px 22px rgba(0,0,0,.35)}
+#syncPanel .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+#syncPanel button,#syncPanel input[type=file]{background:#0f2558;border:1px solid #2b4fb0;color:#e7edff;padding:6px 10px;border-radius:10px;cursor:pointer}
+#syncPanel small{color:#bcd1ff}
+#syncPanel .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2a4ea8;background:#101c44;color:#cfe0ff;font-size:12px}
+#syncPanel h3{margin:0 0 6px 0;font-size:13px}
+</style>
+<div id="syncPanel">
+  <div class="card">
+    <h3>Sauvegarde centralisée</h3>
+    <div class="row">
+      <button id="btnSimplePull" title="Recharger depuis JsonStorage">← Recharger</button>
+      <button id="btnSimplePush" title="Pousser vers JsonStorage">Pousser →</button>
+      <span id="simpleSaveStatus" class="pill">Prêt</span>
+    </div>
+    <div class="row">
+      <button id="btnPickHtml" title="Sélectionner un fichier HTML pour activer l'autosauvegarde locale">Sélectionner HTML…</button>
+      <button id="btnSaveHtmlNow" title="Écrire la page courante dans le fichier sélectionné">Enregistrer maintenant</button>
+    </div>
+    <div class="row">
+      <button id="btnExport">Exporter JSON</button>
+      <input id="fileImport" type="file" accept="application/json">
+      <button id="btnImport">Importer</button>
+      <button id="btnReset" title="Réinitialiser l'état local (ne touche pas JsonStorage)">Réinitialiser</button>
+    </div>
+    <div class="row"><small id="saveHint">Astuce : utilisez Chrome/Edge récents pour l'écriture directe dans un fichier.</small></div>
+  </div>
+</div>
+<!-- === END: Floating Sync Panel (corrected) === -->
+
+<!-- État embarqué dans le fichier (sera mis à jour) -->
+<script type="application/json" id="NEPTUNE_EMBED">{"title":"", "body":"", "__meta":{"updatedAt":"", "by":""}}</script>
+
+<!-- ========== FRAGMENT A : Persistance dans le fichier (corrigé) ========== -->
+<script>
+/* === Persistance dans le fichier HTML (embed JSON + File System Access) === */
+
+var __neptuneHandle = null;
+window.__neptuneAutosave = false;
+
+// Charger l'état depuis l'HTML embarqué
+function loadFromEmbed(){
+  try{
+    var el = document.getElementById('NEPTUNE_EMBED');
+    if(el && el.textContent && el.textContent.trim()){
+      return JSON.parse(el.textContent);
+    }
+  }catch(e){}
+  return null;
+}
+
+// Écrire l'état dans l'HTML (balise <script type="application/json" id="NEPTUNE_EMBED">)
+function writeEmbed(obj){
+  try{
+    var el = document.getElementById('NEPTUNE_EMBED');
+    if(!el){
+      el = document.createElement('script');
+      el.type = 'application/json';
+      el.id = 'NEPTUNE_EMBED';
+      document.body.appendChild(el);
+    }
+    el.textContent = JSON.stringify(obj);
+  }catch(e){}
+}
+
+// Écriture disque de la page HTML courante
+async function saveHtmlToDisk(){
+  try{
+    writeEmbed(window.data);
+    let handle = __neptuneHandle;
+    if(!handle){
+      if(!window.showSaveFilePicker){
+        alert("Votre navigateur ne permet pas l'écriture directe. Utilisez Exporter JSON.");
+        return;
+      }
+      handle = await window.showSaveFilePicker({
+        suggestedName: (document.title || 'neptune') + '.html',
+        types: [{ description: 'HTML', accept: { 'text/html': ['.html', '.htm'] } }]
+      });
+      __neptuneHandle = handle;
+      window.__neptuneAutosave = true;
+    }
+    const writable = await handle.createWritable();
+    const htmlText = '<!doctype html>\n' + document.documentElement.outerHTML;
+    await writable.write(htmlText);
+    await writable.close();
+    var hint = document.getElementById('saveHint');
+    if(hint) hint.textContent = 'Enregistré dans le fichier.';
+  }catch(err){
+    console.error(err);
+    alert('Échec de la sauvegarde dans le fichier: ' + (err && err.message ? err.message : err));
+  }
+}
+
+// Sélectionner un fichier HTML pour activer l'autosauvegarde
+async function pickHtmlFile(){
+  try{
+    if(!window.showOpenFilePicker){
+      alert("Votre navigateur ne permet pas la sélection d'un fichier pour écriture.");
+      return;
+    }
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: 'HTML', accept: { 'text/html': ['.html', '.htm'] } }]
+    });
+    __neptuneHandle = handle;
+    window.__neptuneAutosave = true;
+    var hint = document.getElementById('saveHint');
+    if(hint) hint.textContent = "Autosauvegarde activée sur ce fichier.";
+    await saveHtmlToDisk();
+  }catch(err){
+    if(err && err.name === 'AbortError') return;
+    console.error(err);
+    alert("Impossible d'activer l'autosauvegarde: " + (err && err.message ? err.message : err));
+  }
+}
+
+// Câblage des boutons du panneau "Sauvegarde"
+function enhanceSavePageUI(){
+  try{
+    var pickBtn = document.getElementById('btnPickHtml');
+    var saveNowBtn = document.getElementById('btnSaveHtmlNow');
+    if(pickBtn){ pickBtn.onclick = pickHtmlFile; }
+    if(saveNowBtn){ saveNowBtn.onclick = saveHtmlToDisk; }
+    var hint = document.getElementById('saveHint');
+    if(hint){
+      if(!('showOpenFilePicker' in window)){
+        hint.textContent = "Astuce: pour un stockage multi-PC sans serveur, utilisez Chrome/Edge récents. Sinon, Exporter/Importer JSON.";
+      }else{
+        hint.textContent = window.__neptuneAutosave ? "Autosauvegarde active." : "Sélectionnez le fichier HTML pour activer l'autosauvegarde.";
+      }
+    }
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', enhanceSavePageUI);
+
+// Exporter / Importer / Reset (boutons)
+function buildSave(){
+  function $(id){ return document.getElementById(id); }
+  var KEY='neptune-v5';
+
+  $('btnExport').onclick=function(){
+    var blob=new Blob([JSON.stringify(window.data||{},null,2)],{type:'application/json'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='Neptune_backup.json'; a.click(); URL.revokeObjectURL(a.href);
+  };
+
+  $('btnImport').onclick=async function(){
+    var f=$('fileImport').files[0]; if(!f) return;
+    var r=new FileReader();
+    r.onload=async function(){
+      try{
+        var j=JSON.parse(String(r.result||'{}'));
+        window.data=j;
+        if(typeof window.save==='function') window.save();
+        if(window.__neptuneAutosave && typeof saveHtmlToDisk==='function'){
+          try{ await saveHtmlToDisk(); }catch(_){}
+          alert('Import OK — enregistré dans le fichier.');
+        }else if('showOpenFilePicker' in window){
+          if(confirm('Import OK. Voulez-vous l\'enregistrer dans ce fichier HTML ?')){
+            try{ await pickHtmlFile(); }catch(_){}
+          } else {
+            alert('Import OK (non enregistré dans le fichier).');
+          }
+        }else{
+          alert('Import OK (pas d\'accès disque ; données conservées en mémoire).');
+        }
+        location.reload();
+      }catch(e){ alert('Import invalide'); }
+    };
+    r.readAsText(f);
+  };
+
+  $('btnReset').onclick=function(){
+    if(!confirm('Tout réinitialiser ?')) return;
+    try{ localStorage.removeItem(KEY); }catch(e){}
+    location.reload();
+  };
+}
+</script>
+
+<!-- ========== FRAGMENT B : Sync JsonStorage (corrigé, un seul bloc) ========== -->
+<script>
+(function(){
+  "use strict";
+
+  // ✅ Identifiants (conservés)
+  const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/1979d83c-f4b7-4e34-a4d8-bda3f1be9fd9";
+  const API_KEY   = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
+
+  function status(msg){
+    const el = document.getElementById('simpleSaveStatus');
+    if(el) el.textContent = msg + " (" + new Date().toLocaleTimeString() + ")";
+  }
+  function deviceId(){
+    try{
+      let id=localStorage.getItem('neptune-device');
+      if(!id){ id=Math.random().toString(36).slice(2)+'-'+Date.now().toString(36); localStorage.setItem('neptune-device',id); }
+      return id;
+    }catch(e){ return 'device'; }
+  }
+  function stamp(){
+    try{
+      if(!window.data) window.data={};
+      if(!window.data.__meta) window.data.__meta={};
+      window.data.__meta.updatedAt=new Date().toISOString();
+      window.data.__meta.by=deviceId();
+    }catch(e){}
+  }
+
+  async function jsGet(){
+    let r = await fetch(FIXED_URI,{method:'GET',cache:'no-cache'});
+    if(r.status===401||r.status===403){
+      r = await fetch(FIXED_URI+(FIXED_URI.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY),{method:'GET',cache:'no-cache'});
+    }
+    if(!r.ok) throw new Error('GET '+r.status);
+    return r.json();
+  }
+
+  async function jsPut(obj){
+    const u = FIXED_URI+(FIXED_URI.includes('?')?'&':'?')+'apiKey='+encodeURIComponent(API_KEY);
+    const r = await fetch(u,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj,null,2)});
+    if(!r.ok) throw new Error('PUT '+r.status);
+    return r.json();
+  }
+
+  async function simplePull(){
+    try{
+      const remote = await jsGet();
+      const ru = remote && remote.__meta && Date.parse(remote.__meta.updatedAt||'') || 0;
+      const lu = window.data && window.data.__meta && Date.parse(window.data.__meta.updatedAt||'') || 0;
+      if(ru>lu || !lu){
+        window.data = remote;
+        if(typeof window.save==='function') window.save();
+        try{ if(window.refreshActivePage) window.refreshActivePage(); }catch(_){}
+        status('Mise à jour tirée');
+      }else{
+        status('Déjà à jour');
+      }
+    }catch(e){
+      console.warn(e);
+      status('Échec lecture');
+    }
+  }
+
+  async function simplePush(){
+    try{
+      if(typeof window.beforePush==='function') window.beforePush();
+      stamp();
+      await jsPut(window.data || {});
+      status('Données poussées');
+    }catch(e){
+      console.warn(e);
+      status('Échec écriture');
+    }
+  }
+
+  // Câblage des boutons du panneau JsonStorage
+  function bind(){
+    const pull = document.getElementById('btnSimplePull');
+    const push = document.getElementById('btnSimplePush');
+    if(pull && !pull.__bound){ pull.__bound=true; pull.addEventListener('click', simplePull); }
+    if(push && !push.__bound){ push.__bound=true; push.addEventListener('click', simplePush); }
+  }
+
+  // Autosync: pull initial + toutes les 5 min
+  let t=null;
+  function startTimer(){
+    if(t) clearInterval(t);
+    const tick=()=>simplePull().catch(()=>{});
+    tick();
+    t=setInterval(tick,5*60*1000);
+  }
+
+  // Autosauvegarde distante "debouncée" (appelée par save())
   let __pushTimer = null;
   window.__remoteSave = function(){
     try{ if(__pushTimer) clearTimeout(__pushTimer); }catch(_){}
     __pushTimer = setTimeout(async ()=>{
       try{
-        if(typeof window.stamp==='function') stamp();
+        stamp();
         await jsPut(window.data||{});
-        if(typeof status==='function') status('Autosauvegarde distante OK');
+        status('Autosauvegarde distante OK');
       }catch(e){
         console.warn(e);
-        if(typeof status==='function') status('Autosauvegarde distante: échec');
+        status('Autosauvegarde distante: échec');
       }
     }, 700);
   };
-})();
+
+  // Expose helpers
+  window.remoteSync = { pull: simplePull, push: simplePush };
+
+  // Patch save() si présent pour déclencher l'autosauvegarde distante après un rendu
+  (function patchSave(){
+    const old = window.save;
+    window.save = function(){
+      try{ if(typeof old === 'function') old.apply(this, arguments); }catch(_){}
+      try{ if(typeof window.__remoteSave === 'function') window.__remoteSave(); }catch(_){}
+    };
+  })();
+
+  // Boot
+  document.addEventListener('DOMContentLoaded', function(){ bind(); startTimer(); if(typeof buildSave==='function') buildSave(); });
 })();
 </script>
+
+</body></html>
 
