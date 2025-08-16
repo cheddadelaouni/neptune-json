@@ -3166,14 +3166,18 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 
 
 
-
 <script>
 (function () {
   "use strict";
 
-  // === Config JsonStorage (garde tes valeurs) ===
+  // === Config JsonStorage (garde ces valeurs si ce sont les tiennes) ===
   const FIXED_URI = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/f34e9f5e-ac59-4c7c-a5c5-712c3ff1452c";
   const API_KEY   = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
+
+  // === DEV anti-CORS: si ouvert en file://, on passe par un proxy public (à éviter en prod) ===
+  const NEEDS_PROXY = (location.protocol === 'file:' || location.origin === 'null');
+  const PROXY = NEEDS_PROXY ? 'https://cors.isomorphic-git.org/' : '';
+  const withProxy = (u) => PROXY ? (PROXY + u) : u;
 
   // --- UI status helper ---
   function status(msg){
@@ -3201,17 +3205,18 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   // --- API JsonStorage ---
   async function jsGet(){
     // Essai sans clé puis avec clé si 401/403
-    let r = await fetch(FIXED_URI, {method:'GET', cache:'no-cache'});
+    let url = FIXED_URI;
+    let r = await fetch(withProxy(url), {method:'GET', cache:'no-cache'});
     if(r.status===401 || r.status===403){
-      const u = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
-      r = await fetch(u, {method:'GET', cache:'no-cache'});
+      url = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+      r = await fetch(withProxy(url), {method:'GET', cache:'no-cache'});
     }
     if(!r.ok) throw new Error('GET '+r.status);
     return r.json();
   }
   async function jsPut(obj){
-    const u = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
-    const r = await fetch(u, {
+    const url = FIXED_URI + (FIXED_URI.includes('?')?'&':'?') + 'apiKey=' + encodeURIComponent(API_KEY);
+    const r = await fetch(withProxy(url), {
       method:'PUT',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(obj, null, 2)
@@ -3220,36 +3225,17 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     return r.json();
   }
 
-  // --- Applique EXACTEMENT la même logique qu’un import JSON local ---
+  // --- Applique EXACTEMENT la logique de l’import fichier ---
   function applyImportedDataSameAsFileImport(obj){
-    // Priorité à applyImportedData si déjà défini par ton code d’import
-    if (typeof window.applyImportedData === 'function'){
-      window.applyImportedData(obj);
-      return;
-    }
-
-    // Sinon, on reproduit le pipeline Import JSON:
+    if (typeof window.applyImportedData === 'function'){ window.applyImportedData(obj); return; }
     try{
-      // migrateData peut exister sous différents noms selon tes versions
-      const migrate = window.migrateData || window.__neptuneMigrateData;
-      if (typeof migrate === 'function') obj = migrate(obj);
+      if (typeof window.migrateData === 'function') obj = window.migrateData(obj);
     }catch(_){}
-
-    // summarizeData / __neptuneSummarizeData (si dispo)
     try{
-      const sum = window.summarizeData || window.__neptuneSummarizeData;
-      if (typeof sum === 'function') sum(obj);
+      if (typeof window.summarizeData === 'function') window.summarizeData(obj);
     }catch(_){}
-
-    // data = obj ; save() ; autosave (si activé) ; refresh UI
     try{ window.data = obj; }catch(_){}
     try{ if (typeof window.save === 'function') window.save(); }catch(_){}
-    try{
-      if (window.__neptuneAutosave && typeof window.saveHtmlToDisk === 'function'){
-        // non bloquant si échoue
-        window.saveHtmlToDisk().catch(()=>{});
-      }
-    }catch(_){}
     try{
       if (typeof window.refreshActivePage === 'function') window.refreshActivePage();
       else if (typeof window.renderAccueil === 'function') window.renderAccueil();
@@ -3265,21 +3251,20 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
       status('OK : données chargées');
     }catch(e){
       console.warn(e);
-      status('Échec lecture');
+      status(NEEDS_PROXY ? 'Échec lecture (proxy?)' : 'Échec lecture');
     }
   }
 
   async function simplePush(){
     try{
       status('Écriture JsonStorage…');
-      // Comme Export: on persiste d’abord localement puis on pousse
       if (typeof window.save === 'function') window.save();
       stamp();
       await jsPut(window.data || {});
       status('OK : données poussées');
     }catch(e){
       console.warn(e);
-      status('Échec écriture');
+      status(NEEDS_PROXY ? 'Échec écriture (proxy?)' : 'Échec écriture');
     }
   }
 
@@ -3293,4 +3278,5 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   document.addEventListener('DOMContentLoaded', bind);
 })();
 </script>
+
 </body></html>
