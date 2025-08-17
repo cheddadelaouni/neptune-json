@@ -3206,7 +3206,7 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     else console.log("[STATUS]", msg);
   };
 
-  /* ====== Application hooks (si présents) ====== */
+  /* ====== Hooks appli (si dispo) ====== */
   function applyImported(j){
     try{ if (window.__neptuneMigrateData) j = window.__neptuneMigrateData(j); }catch(_){}
     try{ window.data = j || {}; }catch(_){}
@@ -3234,24 +3234,47 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     return true;
   }
 
-  /* ====== Capture “Exporter JSON” (exactement le même payload) ====== */
+  /* ====== Capture exacte de “Exporter JSON” (sans télécharger le fichier) ====== */
   async function captureExportPayload(timeoutMs = 1500){
     return new Promise(async (resolve) => {
-      let restored = false;
+      let resolved = false, restored = false;
+
       const origCreate = URL.createObjectURL;
+      const origClick  = HTMLAnchorElement.prototype.click;
 
       function restore(){
-        if (!restored) { URL.createObjectURL = origCreate; restored = true; }
+        if (!restored){
+          try { URL.createObjectURL = origCreate; } catch(_){}
+          try { HTMLAnchorElement.prototype.click = origClick; } catch(_){}
+          try { delete window.__suppressExportDownload; } catch(_){}
+          restored = true;
+        }
       }
 
-      let resolved = false;
+      // 1) Bloque le téléchargement pendant la capture
+      window.__suppressExportDownload = true;
+
+      HTMLAnchorElement.prototype.click = function(){
+        try{
+          // On bloque les clics sur <a> de téléchargement JSON (blob:)
+          if (window.__suppressExportDownload &&
+              this && this.href && this.href.startsWith("blob:") &&
+              ((this.download && /\.json$/i.test(this.download)) || /json/i.test(this.type || ""))) {
+            console.log("[CAPTURE EXPORT] téléchargement bloqué pour", this.download || this.href);
+            return; // on n'appelle PAS l’original → pas de download
+          }
+        }catch(_){}
+        return origClick.apply(this, arguments);
+      };
+
+      // 2) Intercepte aussi le contenu du Blob exporté
       URL.createObjectURL = function(blob){
         try{
           if (blob && blob instanceof Blob){
             const r = new FileReader();
             r.onload = () => {
               try{
-                const txt = String(r.result || "");
+                const txt  = String(r.result || "");
                 const json = JSON.parse(txt);
                 window.__lastExport = json;
                 console.log("[CAPTURE EXPORT] taille =", txt.length, "octets · clés:", Object.keys(json));
@@ -3266,17 +3289,15 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
         return origCreate.apply(this, arguments);
       };
 
-      // 1) Sauvegarde si possible
+      // 3) Sauvegarde / déclenche l’export
       try{ if (typeof save === "function") save(); }catch(_){}
-
-      // 2) Clique sur le bouton Export
       const btn = document.getElementById("btnExport");
       if (btn) btn.click(); else console.warn("⚠️ #btnExport introuvable — clique manuellement sur « Exporter JSON ».");
 
-      // 3) Attends un peu
+      // 4) Attente de capture
       await sleep(timeoutMs);
 
-      // 4) Plan B: plus gros <script type="application/json" id^=NEPTUNE_EMBED>
+      // 5) Plan B: plus gros <script type="application/json" id^=NEPTUNE_EMBED>
       if (!resolved && !window.__lastExport){
         const embeds = [...document.querySelectorAll('script[type="application/json"][id^="NEPTUNE_EMBED"]')];
         if (embeds.length){
@@ -3290,13 +3311,13 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
         }
       }
 
-      // 5) Timeout → on rend ce qu’on a (ou null)
+      // 6) Fin → on rend ce qu’on a (ou null) et on restaure les hooks
       restore();
       resolve(window.__lastExport || null);
     });
   }
 
-  /* ====== PUSH Exact (via export capturé) ====== */
+  /* ====== PUSH exact (via export capturé) ====== */
   async function simplePushExact(){
     try{
       status("Préparation…");
@@ -3307,7 +3328,7 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
         return;
       }
 
-      // enrichit __meta minimal
+      // Ajoute un __meta minimal
       try{
         payload.__meta = payload.__meta || {};
         payload.__meta.updatedAt = new Date().toISOString();
@@ -3356,9 +3377,8 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     if (el && !el.__bound){ el.__bound = true; el.addEventListener("click", fn); }
     else if (!el){ console.warn("[JsonStorage] Bouton manquant :", id); }
   }
-  // Remappe tes boutons existants
-  bindClick("btnSimplePush", simplePushExact); // “Pousser” → capture exactement l’export et pousse
-  bindClick("btnSimplePull", simplePull);      // “Recharger” → lit et applique
+  bindClick("btnSimplePush", simplePushExact); // “Pousser” → capture & push (sans télécharger)
+  bindClick("btnSimplePull", simplePull);      // “Recharger” → lit & applique
 
   /* ====== Expose console ====== */
   window.__jsonstorage = {
@@ -3368,4 +3388,5 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   };
 })();
 </script>
+
 </body></html>
