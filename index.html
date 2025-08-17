@@ -3176,191 +3176,114 @@ $('btnExport').onclick=function(){
 
 <script>
 (function(){
-  /* ===== Helper rôle ===== */
-  window.getRole = function(){
-    try { return sessionStorage.getItem('neptuneRole') || (sessionStorage.getItem('neptuneAuth')==='ok' ? 'admin' : 'interne'); }
-    catch(e){ return 'interne'; }
-  };
+  var origLocks = window.applyRoleLocks;
 
-  /* ===== switchTab : Sauvegarde accessible à tous ; Semaine type admin-only ===== */
-  (function(){
-    var orig = window.switchTab;
-    window.switchTab = function(id, btn){
-      var r; try{ r = getRole(); }catch(e){ r = 'interne'; }
+  window.applyRoleLocks = function(){
+    if(typeof origLocks === 'function'){ try{ origLocks(); }catch(e){} }
 
-      // Seule "Semaine type" reste admin-only
-      if(r !== 'admin' && id === 'page-week'){
-        alert('Accès réservé à l’administrateur.');
-        return;
+    var active = document.querySelector('section:not(.hidden)');
+    if(!active) return;
+
+    var r = (function(){ try{ return getRole(); }catch(e){ return 'interne'; } })();
+    var pageId = active.id || '';
+
+    // ======== Onglet Sauvegarde ========
+    if(pageId === 'page-save'){
+      // IDs connus
+      var ids = {
+        importBtn: 'btnImport',
+        fileImport:'fileImport',
+        exportBtn: 'btnExport',
+        pullBtn:   'btnSimplePull',   // << Interne : seul autorisé
+        pushBtn:   'btnSimplePush',
+        resetBtn:  'btnReset'
+      };
+
+      // Politique par rôle
+      var allow = {};
+      if(r === 'admin'){
+        allow.ALL = true;
+      } else if(r === 'senior'){
+        allow[ids.importBtn]=true;
+        allow[ids.fileImport]=true;
+        allow[ids.exportBtn]=true;
+        allow[ids.pullBtn]=true;
+        allow[ids.pushBtn]=true;
+        // reset = admin only
+      } else { // interne
+        allow[ids.pullBtn]=true; // UNIQUEMENT Recharger
       }
 
-      // — Forçage spécial pour "page-save" (Sauvegarde) —
-      if(id === 'page-save'){
-        if(typeof orig === 'function'){ try{ orig(id, btn); }catch(e){} }
-        try{
-          document.querySelectorAll('section').forEach(function(s){ s.classList.add('hidden'); });
-          var sec = document.getElementById('page-save');
-          if(sec){ sec.classList.remove('hidden'); }
-        }catch(e){}
-        try{ if(typeof window.buildSave === 'function') window.buildSave(); }catch(e){}
-        try{ if(typeof window.applyRoleLocks === 'function') window.applyRoleLocks(); }catch(e){}
-        return;
-      }
-
-      // — Autres onglets —
-      if(typeof orig === 'function'){ return orig(id, btn); }
-      var target = document.getElementById(id);
-      if(target){
-        document.querySelectorAll('section').forEach(function(s){ s.classList.add('hidden'); });
-        target.classList.remove('hidden');
-      }
-      try{ if(typeof window.applyRoleLocks === 'function') window.applyRoleLocks(); }catch(e){}
-    };
-  })();
-
-  /* ===== Verrous : Interne = lecture seule ; Senior = édition ; Reset admin-only ===== */
-  (function(){
-    var origLocks = window.applyRoleLocks;
-
-    function disableEl(el, title){
-      el.disabled = true;
-      el.style.opacity = '0.5';
-      el.style.pointerEvents = 'none';
-      el.setAttribute('aria-disabled','true');
-      if(title){ el.title = title; } else if(!el.title){ el.title = 'Lecture seule'; }
-      el.tabIndex = -1;
-    }
-    function enableEl(el){
-      el.disabled = false;
-      el.style.opacity = '';
-      el.style.pointerEvents = '';
-      el.removeAttribute('aria-disabled');
-      if(el.title === 'Lecture seule' || /Accès réservé/.test(el.title||'')) el.title = '';
-      el.tabIndex = 0;
-    }
-
-    // garde-fou pour Reset (on enlève/remet le listener si besoin)
-    function setResetGuard(admin){
-      var btn = document.getElementById('btnReset');
-      if(!btn) return;
-      if(btn._resetGuard){ btn.removeEventListener('click', btn._resetGuard, true); btn._resetGuard=null; }
-      if(!admin){
-        btn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
-        btn.addEventListener('click', btn._resetGuard, true);
-      }
-    }
-
-    window.applyRoleLocks = function(){
-      if(typeof origLocks === 'function'){ try{ origLocks(); }catch(e){} }
-
-      var active = document.querySelector('section:not(.hidden)');
-      if(!active) return;
-
-      var r = getRole();
-
-      // ======= Onglet Sauvegarde =======
-      if(active.id === 'page-save'){
-        // IDs connus
-        var ids = {
-          importBtn: 'btnImport',
-          fileImport:'fileImport',
-          exportBtn: 'btnExport',
-          pullBtn:   'btnSimplePull',   // << le seul autorisé pour INTERNE
-          pushBtn:   'btnSimplePush',
-          resetBtn:  'btnReset'
-        };
-
-        // Politique par rôle
-        var allow = {};
-        if(r === 'admin'){
-          allow = { ALL:true };
-        } else if(r === 'senior'){
-          allow[ids.importBtn]=true;
-          allow[ids.fileImport]=true;
-          allow[ids.exportBtn]=true;
-          allow[ids.pullBtn]=true;
-          allow[ids.pushBtn]=true;
-          // reset reste admin-only
-        } else { // interne
-          allow[ids.pullBtn]=true; // UNIQUEMENT Recharger
-        }
-
-        // Appliquer
-        var nodes = active.querySelectorAll('input, button, select, textarea');
-        nodes.forEach(function(el){
-          var id = el.id || '';
-          if(r === 'admin'){
-            enableEl(el);
-          }else{
-            if(allow[id]) enableEl(el);
-            else disableEl(el, (id===ids.resetBtn?'Accès réservé à l’administrateur':'Lecture seule'));
-          }
-        });
-
-        // Admin-only pour Réinitialiser
-        var resetBtn = document.getElementById(ids.resetBtn);
-        if(resetBtn){
-          if(r === 'admin'){ enableEl(resetBtn); setResetGuard(true); }
-          else { disableEl(resetBtn, 'Accès réservé à l’administrateur'); setResetGuard(false); }
-        }
-        return;
-      }
-
-      // ======= Autres onglets : Interne = lecture seule (laisser navigation/onglets/filtre) =======
-      if(r === 'interne'){
-        var nodes2 = active.querySelectorAll('input, button, select, textarea');
-        nodes2.forEach(function(el){
-          // ne pas bloquer la barre d’onglets ni les filtres/navigation
-          var inTabs = !!(el.closest && el.closest('#tabs'));
-          var id = el.id || '';
-          var isFilter = /^acc|^cal|^month|^year|^week|^accMode|^calMode|^accPrev|^accNext|^accYear|^accWeek|^accMonth|^calYear|^calMonth/.test(id);
-          if(inTabs || isFilter){ return; }
-          disableEl(el);
-        });
-      }
-      // Senior/Admin : pas de restriction hors page-save
-    };
-
-    // Afficher le bouton d’onglet "Sauvegarde" si caché
-    function ensureSaveTabButton(){
-      var tabs = document.getElementById('tabs');
-      if(!tabs) return;
-      var found = false;
-      var btns = tabs.querySelectorAll('button, a, [data-target], [data-page]');
-      btns.forEach(function(el){
-        var sig = (el.getAttribute('data-target')||'') + ' ' +
-                  (el.getAttribute('data-page')||'') + ' ' +
-                  (el.getAttribute('href')||'') + ' ' +
-                  (el.getAttribute('onclick')||'') + ' ' +
-                  (el.textContent||'');
-        if(/page-save|#page-save|Sauvegarde/i.test(sig)){
-          el.style.display = '';
+      // Appliquer
+      var nodes = active.querySelectorAll('input, button, select, textarea');
+      nodes.forEach(function(el){
+        var id = el.id || '';
+        if(r === 'admin' || allow.ALL || allow[id]){
           el.disabled = false;
-          el.removeAttribute('aria-hidden');
+          el.style.opacity = '';
           el.style.pointerEvents = '';
-          if(!el._saveHooked){
-            el.addEventListener('click', function(e){ e.preventDefault(); window.switchTab('page-save', el); }, false);
-            el._saveHooked = true;
-          }
-          found = true;
+          el.removeAttribute('aria-disabled');
+          if(/Lecture seule|Accès réservé/.test(el.title||'')) el.title = '';
+          el.tabIndex = 0;
+        }else{
+          el.disabled = true;
+          el.style.opacity = '0.5';
+          el.style.pointerEvents = 'none';
+          el.setAttribute('aria-disabled','true');
+          if(id === ids.resetBtn) el.title = 'Accès réservé à l’administrateur';
+          else if(!el.title) el.title = 'Lecture seule';
+          el.tabIndex = -1;
         }
       });
-      if(!found){
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.textContent = 'Sauvegarde';
-        b.addEventListener('click', function(){ window.switchTab('page-save', b); }, false);
-        tabs.appendChild(b);
+
+      // Admin-only pour Réinitialiser (garde-fou de clic)
+      var resetBtn = document.getElementById(ids.resetBtn);
+      if(resetBtn){
+        if(resetBtn._resetGuard){ resetBtn.removeEventListener('click', resetBtn._resetGuard, true); resetBtn._resetGuard = null; }
+        if(r !== 'admin'){
+          resetBtn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
+          resetBtn.addEventListener('click', resetBtn._resetGuard, true);
+        }
       }
+      return;
     }
 
-    document.addEventListener('DOMContentLoaded', function(){
-      try{ ensureSaveTabButton(); }catch(e){}
-      try{ if(typeof window.applyRoleLocks === 'function') window.applyRoleLocks(); }catch(e){}
-    });
-  })();
+    // ======== EXCEPTION demandée : Interne = accès COMPLET sur "Planning Interne" ========
+    if(r === 'interne' && pageId === 'page-intern'){
+      // (Ré)active tout au cas où un autre script aurait désactivé
+      var nodesPI = active.querySelectorAll('input, button, select, textarea');
+      nodesPI.forEach(function(el){
+        el.disabled = false;
+        el.style.opacity = '';
+        el.style.pointerEvents = '';
+        el.removeAttribute('aria-disabled');
+        if(/Lecture seule|Accès réservé/.test(el.title||'')) el.title = '';
+        el.tabIndex = 0;
+      });
+      return;
+    }
+
+    // ======== Autres onglets : Interne = lecture seule (laisser onglets/filtres) ========
+    if(r === 'interne'){
+      var nodes2 = active.querySelectorAll('input, button, select, textarea');
+      nodes2.forEach(function(el){
+        var inTabs = !!(el.closest && el.closest('#tabs'));
+        var id = el.id || '';
+        var isFilter = /^acc|^cal|^month|^year|^week|^accMode|^calMode|^accPrev|^accNext|^accYear|^accWeek|^accMonth|^calYear|^calMonth/.test(id);
+        if(inTabs || isFilter){ return; } // on laisse la navigation et les filtres
+        el.disabled = true;
+        el.style.opacity = '0.5';
+        el.style.pointerEvents = 'none';
+        el.setAttribute('aria-disabled','true');
+        if(!el.title) el.title = 'Lecture seule';
+        el.tabIndex = -1;
+      });
+    }
+    // Seniors/Admin : pas de restriction hors page-save
+  };
 })();
 </script>
+
 
 
 
