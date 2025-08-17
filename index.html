@@ -3182,225 +3182,185 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 
 
 
-  <script>
+<script>
 (() => {
   "use strict";
 
-  /* ====== CONFIG (les valeurs qui marchent déjà) ====== */
-  const API_KEY = '1c5f1698-c8f7-4992-988a-d1ae29cb35ee';
-  const URI     = 'https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c';
-  const VERIFY_AFTER_PUSH = true;   // relit après push pour vérifier
+  /* ====== CONFIG ====== */
+  const API_KEY = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
+  const URI     = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
+  const VERIFY_AFTER_PUSH = true;
 
-  /* ====== UTIL ====== */
-  const withKey = (u) => u + (u.includes('?') ? '&' : '?') + 'apiKey=' + encodeURIComponent(API_KEY);
-  const now     = () => { try { return new Date().toLocaleTimeString(); } catch(_) { return ''; } };
+  /* ====== HELPERS ====== */
+  const withKey = (u) => u + (u.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(API_KEY);
+  const now     = () => { try { return new Date().toLocaleTimeString(); } catch(_) { return ""; } };
   function status(msg){
-    const el = document.getElementById('simpleSaveStatus') || document.getElementById('barStatus');
-    if (el) el.textContent = msg + (now() ? (' ('+now()+')') : '');
+    const el = document.getElementById("simpleSaveStatus") || document.getElementById("barStatus");
+    if (el) el.textContent = msg + (now() ? (" ("+now()+")") : "");
   }
   function deviceId(){
     try{
-      let id = localStorage.getItem('neptune-device');
-      if(!id){ id = Math.random().toString(36).slice(2)+'-'+Date.now().toString(36); localStorage.setItem('neptune-device', id); }
+      let id = localStorage.getItem("neptune-device");
+      if(!id){ id = Math.random().toString(36).slice(2)+"-"+Date.now().toString(36); localStorage.setItem("neptune-device", id); }
       return id;
-    }catch(_){ return 'device'; }
+    }catch(_){ return "device"; }
   }
-  const clone = (x) => JSON.parse(JSON.stringify(x));
-
-  /* ====== RECONSTRUCTION DU SNAPSHOT COMPLET ====== */
-  function buildSnapshot() {
-    // 1) Si l’app expose un extracteur “officiel”, on l’utilise
-    const extractors = ['__neptuneExtract','extractData','getExportData','exportJSON','toJSON'];
-    for (const fn of extractors) {
-      try{
-        if (typeof window[fn] === 'function') {
-          const out = window[fn]();
-          if (out && typeof out === 'object') {
-            const obj = clone(out);
-            ensureMeta(obj);
-            return obj;
-          }
-        }
-      }catch(e){ console.warn('[Snapshot:'+fn+']', e); }
-    }
-
-    // 2) Si window.data ressemble déjà au gros objet attendu
-    try{
-      if (window.data && typeof window.data === 'object') {
-        const j = clone(window.data);
-        // heuristique: on préfère un objet qui contient des gros tableaux attendus
-        const keys = Object.keys(j);
-        const looksBig =
-          ('rooms' in j && Array.isArray(j.rooms) && j.rooms.length) ||
-          ('specialties' in j && Array.isArray(j.specialties) && j.specialties.length) ||
-          ('practitioners' in j && Array.isArray(j.practitioners) && j.practitioners.length) ||
-          ('absences' in j) || ('absencesIntern' in j);
-        if (looksBig) {
-          ensureMeta(j);
-          return j;
-        }
-      }
-    }catch(e){ console.warn('[Snapshot:data]', e); }
-
-    // 3) Sinon, on tente d’agréger les variables globales connues
-    const agg = {};
-    ['specialties','practitioners','interns','rooms','absences','absencesIntern'].forEach(k=>{
-      if (window[k] !== undefined) agg[k] = window[k];
-    });
-    if (Object.keys(agg).length) {
-      const j = clone(agg);
-      ensureMeta(j);
-      return j;
-    }
-
-    // 4) Fallback: au moins un objet valide
-    const j = {};
-    ensureMeta(j);
-    return j;
-  }
-
   function ensureMeta(obj){
     try{
+      obj = obj && typeof obj==="object" ? obj : {};
       if (!obj.__meta) obj.__meta = {};
       obj.__meta.updatedAt = new Date().toISOString();
       obj.__meta.by        = deviceId();
-    }catch(_){}
+    }catch(_) {}
+    return obj;
   }
 
-  function applyImported(j){
-    // Migration / résumé si dispo
-    try{ if (window.__neptuneMigrateData) j = window.__neptuneMigrateData(j); }catch(_){}
-    window.data = j || {};
-    try{ if (typeof window.save === 'function') window.save(); }catch(_){}
+  /* ====== RÉCUPÉRER *LE MÊME* OBJET QUE L'EXPORT ====== */
+  function grabData(){
+    // a) extracteur officiel si présent
+    const fns = ["__neptuneExtract","extractData","getExportData","exportJSON","toJSON"];
+    for (const fn of fns){
+      try{
+        if (typeof window[fn] === "function"){
+          const v = window[fn]();
+          if (v && typeof v === "object") return v;
+        }
+      }catch(_){}
+    }
+    // b) la variable globale "data" (même si elle n'est pas sur window)
     try{
-      if (typeof window.refreshActivePage === 'function') window.refreshActivePage();
-      else if (typeof window.renderAccueil === 'function') window.renderAccueil();
+      const v = Function("try { return data; } catch(e){ return undefined; }")();
+      if (v && typeof v === "object") return v;
     }catch(_){}
-    try{ if (window.__neptuneSummarizeData) window.__neptuneSummarizeData(window.data); }catch(_){}
+    // c) fallback : window.data
+    try{
+      if (window.data && typeof window.data === "object") return window.data;
+    }catch(_){}
+    return {};
+  }
+
+  function exportPayload(){
+    // synchroniser comme le ferait l’export
+    try { if (typeof save === "function") save(); } catch(_) {}
+    let obj = grabData();
+    try { obj = JSON.parse(JSON.stringify(obj)); } catch(_) {}
+    ensureMeta(obj);
+    return obj;
   }
 
   /* ====== I/O JsonStorage ====== */
   async function jsGet(){
-    const url = withKey(URI) + '&_ts=' + Date.now(); // anti-cache
-    const r = await fetch(url, { method:'GET', cache:'no-store', headers:{ 'Cache-Control':'no-cache' } });
-    if (!r.ok) throw new Error('GET '+r.status);
+    const url = withKey(URI) + "&_ts=" + Date.now(); // anti-cache
+    const r = await fetch(url, { method:"GET", cache:"no-store", headers:{ "Cache-Control":"no-cache" } });
+    if (!r.ok) throw new Error("GET "+r.status);
     return r.json();
   }
   async function jsPut(obj){
     const body = JSON.stringify(obj ?? {});
     const r = await fetch(withKey(URI), {
-      method: 'PUT',
-      headers: { 'Content-Type':'application/json' },
+      method: "PUT",
+      headers: { "Content-Type":"application/json" },
       body,
-      cache: 'no-store'
+      cache: "no-store"
     });
-    if (!r.ok) {
-      const t = await r.text().catch(()=> '');
-      throw new Error('PUT '+r.status+' — '+t.slice(0,200));
+    if (!r.ok){
+      const t = await r.text().catch(()=> "");
+      throw new Error("PUT "+r.status+" — "+t.slice(0,200));
     }
     return true;
   }
 
-  // === Utiliser EXACTEMENT le même payload que "Exporter JSON" ===
-function exportPayload(){
-  // 1) forcer la synchro UI -> data comme le ferait un export
-  try { if (typeof save === 'function') save(); } catch(_){}
+  /* ====== APPLY IMPORT (met à jour data ET window.data) ====== */
+  function applyImported(j){
+    try{ if (window.__neptuneMigrateData) j = window.__neptuneMigrateData(j); }catch(_){}
+    try { data = j || {}; } catch(_) {}
+    try { window.data = j || {}; } catch(_) {}
+    try{ if (typeof window.save === "function") window.save(); }catch(_){}
+    try{
+      if (typeof window.refreshActivePage === "function") window.refreshActivePage();
+      else if (typeof window.renderAccueil === "function") window.renderAccueil();
+    }catch(_){}
+    try{ if (window.__neptuneSummarizeData) window.__neptuneSummarizeData(window.data); }catch(_){}
+  }
 
-  // 2) prendre le même objet que "Exporter JSON" stringifie
-  let obj = (typeof window.data !== 'undefined' && window.data) ? window.data : {};
-
-  // 3) cloner + marquer les métadonnées
-  try { obj = JSON.parse(JSON.stringify(obj)); } catch(_){}
-  ensureMeta(obj);
-  return obj;
-}
-
-  /* ====== Actions ====== */
+  /* ====== ACTIONS ====== */
   async function simplePull(){
     try{
-      status('Lecture…');
+      status("Lecture…");
       const remote = await jsGet();
       applyImported(remote);
-      status('Chargé depuis JsonStorage');
+      status("Chargé depuis JsonStorage");
     }catch(e){
       console.warn(e);
-      status('Échec lecture : ' + (e.message || e));
+      status("Échec lecture : " + (e.message || e));
     }
   }
 
   async function simplePush(){
-  try{
-    status('Préparation…');
+    try{
+      status("Préparation…");
+      const payload = exportPayload();     // <<< lit la VRAIE data de l'export
+      const size    = JSON.stringify(payload).length;
+      console.log("[Push] taille export =", size, "octets");
 
-    // >>> on envoie EXACTEMENT ce que "Exporter JSON" écrirait
-    const payload = exportPayload();
-    const size = JSON.stringify(payload).length;
-    console.log('[Push] taille export =', size, 'octets');
+      // garde-fou : évite d’écraser le distant avec un objet vide
+      if (size < 2000){
+        status("Échec : export trop petit — vérifie que 'data' est rempli");
+        return;
+      }
 
-    // garde-fou pour éviter d’écraser le distant avec un export vide
-    if (size < 2000) {
-      status('Échec : export trop petit — vérifie que "data" est bien rempli (et que save() passe)');
-      return;
+      status("Écriture…");
+      await jsPut(payload);
+
+      if (VERIFY_AFTER_PUSH){
+        const back = await jsGet();
+        const ok = !!(back && back.__meta && payload.__meta &&
+                      back.__meta.updatedAt === payload.__meta.updatedAt);
+        status(ok ? "Enregistré (vérifié) ✅" : "Enregistré (à vérifier)");
+      } else {
+        status("Enregistré sur JsonStorage ✅");
+      }
+    }catch(e){
+      console.warn(e);
+      status("Échec écriture : " + (e.message || e));
     }
-
-    status('Écriture…');
-    await jsPut(payload);
-
-    if (VERIFY_AFTER_PUSH){
-      const back = await jsGet();
-      const ok = !!(back && back.__meta && payload.__meta &&
-                    back.__meta.updatedAt === payload.__meta.updatedAt);
-      status(ok ? 'Enregistré (vérifié) ✅' : 'Enregistré (à vérifier)');
-    } else {
-      status('Enregistré sur JsonStorage ✅');
-    }
-  }catch(e){
-    console.warn(e);
-    status('Échec écriture : ' + (e.message || e));
   }
-}
 
-
-  /* ====== Bind UI ====== */
+  /* ====== BIND UI ====== */
   function bindClick(id, fn){
     const el = document.getElementById(id);
-    if (el && !el.__bound){ el.__bound = true; el.addEventListener('click', fn); }
-    else if (!el){ console.warn('[JsonStorage] Bouton manquant :', id); }
+    if (el && !el.__bound){ el.__bound = true; el.addEventListener("click", fn); }
+    else if (!el){ console.warn("[JsonStorage] Bouton manquant :", id); }
   }
-  bindClick('btnSimplePull', simplePull);
-  bindClick('btnSimplePush', simplePush);
+  bindClick("btnSimplePull", simplePull);
+  bindClick("btnSimplePush", simplePush);
 
-  /* ====== Outils console ====== */
+  /* ====== OUTILS CONSOLE (optionnel) ====== */
   async function probeRoundTrip(){
-    const mark = 'rt-' + Date.now();
-    let snap = buildSnapshot();
-    // injecte un marqueur visible pour vérifier que le gros objet part et revient
+    const mark = "rt-" + Date.now();
+    const snap = exportPayload();
     snap.__probe = mark;
     const size = JSON.stringify(snap).length;
-    console.table(Object.entries({
-      'Taille snapshot (octets)': size
-    }));
-    if (size < 2000) {
-      console.warn('⚠️ Snapshot semble incomplet. Clés:', Object.keys(snap));
-      return { ok:false, reason:'small-snapshot', size, keys:Object.keys(snap) };
+    console.table(Object.entries({ "Taille export (octets)": size }));
+    if (size < 2000){
+      console.warn("⚠️ Export semble incomplet. Clés:", Object.keys(snap));
+      return { ok:false, reason:"small-export", size, keys:Object.keys(snap) };
     }
     await jsPut(snap);
     const back = await jsGet();
     const ok = back && back.__probe === mark;
     console.table(Object.entries({
-      'HTTP GET OK ?': !!back,
-      'Marqueur attendu': mark,
-      'Marqueur lu': back && back.__probe,
-      'Round-trip OK ?': ok
+      "HTTP GET OK ?": !!back,
+      "Marqueur attendu": mark,
+      "Marqueur lu": back && back.__probe,
+      "Round-trip OK ?": ok
     }));
     return { ok, size };
   }
 
-  window.__jsonstorage = {
-    URI, API_KEY,
-    simplePull, simplePush, jsGet, jsPut,
-    buildSnapshot, probeRoundTrip
-  };
+  // Expose pour tests
+  window.__jsonstorage = { URI, API_KEY, simplePull, simplePush, jsGet, jsPut, exportPayload, probeRoundTrip };
 })();
 </script>
+
 </body></html>
