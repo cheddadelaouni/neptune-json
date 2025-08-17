@@ -3180,7 +3180,6 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 
 
 
-
 <script>
 (() => {
   "use strict";
@@ -3190,10 +3189,9 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   const URI     = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
   const withKey = (u) => u + (u.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(API_KEY);
 
-  const VERIFY_AFTER_PUSH  = true;
-  const MIN_BYTES_TO_TRUST = 2000;
-  // 🔁 On RECHARGE après pull si l’UI n’a pas pu se rafraîchir correctement
-  const FORCE_RELOAD_AFTER_PULL = true;
+  const VERIFY_AFTER_PUSH      = true;
+  const MIN_BYTES_TO_TRUST     = 2000;
+  const FORCE_RELOAD_AFTER_PULL = false; // ⬅️ désactivé : plus de “reset” involontaire
 
   /* ====== Utils ====== */
   const sleep  = (ms)=>new Promise(r=>setTimeout(r,ms));
@@ -3231,7 +3229,6 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   /* ====== Migration + résumé (parité Import JSON) ====== */
   function migrateData(j){
     try{ if (typeof window.__neptuneMigrateData === "function") return window.__neptuneMigrateData(j); }catch(_){}
-    // garde-fou minimal si les helpers ne sont pas exposés
     const out = Object.assign({}, j||{});
     if(!Array.isArray(out.specialties))   out.specialties   = out.specialties   || [];
     if(!Array.isArray(out.practitioners)) out.practitioners = out.practitioners || [];
@@ -3243,7 +3240,6 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     out.guardsIntern   = out.guardsIntern   || {};
     out.oncalls        = out.oncalls        || {};
     out.overrides      = out.overrides      || {};
-    // normalise rooms.schedule
     for (let r of out.rooms) { if (r && typeof r === "object" && !r.schedule) r.schedule = {}; }
     return out;
   }
@@ -3272,72 +3268,101 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     keys.forEach(k => { try { window[k] = j[k]; } catch(_){ } });
   }
 
-  /* ====== Apprentissage de la clé localStorage utilisée par save() ====== */
-  function saveWithKeyLearning(currentData){
+  /* ====== Mise à jour du plus gros <script id^=NEPTUNE_EMBED> dans le DOM ====== */
+  function updateBiggestEmbed(j){
+    try{
+      const embeds = [...document.querySelectorAll('script[type="application/json"][id^="NEPTUNE_EMBED"]')];
+      if (!embeds.length) return null;
+      const biggest = embeds.reduce((a,b)=> (a.textContent.length >= b.textContent.length ? a : b));
+      biggest.textContent = JSON.stringify(j);
+      console.log("[EMBED] mis à jour dans", biggest.id, "· taille =", biggest.textContent.length, "o");
+      return biggest.id;
+    }catch(e){
+      console.warn("[EMBED] update KO:", e);
+      return null;
+    }
+  }
+
+  /* ====== Apprentissage + écriture localStorage (toutes clés candidates) ====== */
+  function persistToAllStores(currentData){
+    // 1) espionne save() pour récupérer la/les clés réellement utilisées
+    const seen = new Set();
     const origSet = localStorage.setItem;
-    const seen = [];
     localStorage.setItem = function(k,v){
-      try{ seen.push(k); }catch(_){}
+      try{ seen.add(k); }catch(_){}
       return origSet.apply(this, arguments);
     };
     try { if (typeof window.save === "function") window.save(); } catch(_){}
     try { localStorage.setItem = origSet; } catch(_){}
 
-    let key = null;
-    try { if (typeof window.KEY === "string" && window.KEY) key = window.KEY; } catch(_){}
-    if (!key) key = seen.reverse().find(k => typeof k === "string" && k);
-    if (!key) {
-      // dernier filet : cherche une clé ressemblant à “neptune”
-      for (let i=0;i<localStorage.length;i++){
-        const k = localStorage.key(i);
-        if (/neptune|data|store|state/i.test(k||"")) { key = k; break; }
+    // 2) construit la liste de clés à écrire
+    const candidates = new Set([
+      // clés vues pendant save()
+      ...seen,
+      // clé globale si exposée
+      (typeof window.KEY === "string" && window.KEY) ? window.KEY : null,
+      // fallbacks connus
+      "neptune-v5", "NEPTUNE_DATA", "neptune-data", "neptune", "NEPTUNE_STATE"
+    ].filter(Boolean));
+
+    // 3) écrit dans toutes
+    const body = JSON.stringify(currentData);
+    for (const k of candidates){
+      try{
+        localStorage.setItem(k, body);
+        console.log("[LOCALSTORAGE] écrit →", k);
+      }catch(e){
+        console.warn("[LOCALSTORAGE] setItem KO pour", k, e);
       }
     }
-    if (!key) key = "NEPTUNE_DATA";
 
-    try {
-      localStorage.setItem(key, JSON.stringify(currentData));
-      console.log("[LOCALSTORAGE] écrit sous", key);
-      try { if (!window.KEY) window.KEY = key; }catch(_){}
-    } catch(e) {
-      console.warn("[LOCALSTORAGE] setItem failed:", e);
-    }
-
-    return key;
+    // fixe window.KEY si absent
+    try{ if (!window.KEY){ const first = candidates.values().next().value; if (first) window.KEY = first; } }catch(_){}
+    return [...candidates];
   }
 
-  /* ====== Injection à la manière d’un import JSON “vrai” ====== */
+  /* ====== Injection façon “Import JSON” (sans reload forcé) ====== */
   async function applyAsIfImported(payload){
-    let j = migrateData(payload || {});
+    const j = migrateData(payload || {});
     // 1) data & globals
     try { window.data = j; } catch(_){}
-    try { /* si data (sans window) existe */ data = j; } catch(_){}
+    try { data = j; } catch(_){}
     propagateSplitGlobals(j);
-    // 2) resume visuel
+    // 2) résumé visuel
     summarizeData(j);
-    // 3) save() + écriture sur la bonne clé
-    const key = saveWithKeyLearning(j);
-    // 4) rafraîchit l’UI immédiate si dispo
+    // 3) persistance : localStorage toutes clés + EMBED DOM
+    const writtenKeys = persistToAllStores(j);
+    const embedId = updateBiggestEmbed(j);
+
+    // si l’app sait sauver le HTML, on tente
+    try{
+      if (window.__neptuneAutosave && typeof window.saveHtmlToDisk === "function"){
+        await window.saveHtmlToDisk();
+        console.log("[DISK] HTML enregistré via saveHtmlToDisk()");
+      }else if ("showOpenFilePicker" in window && typeof window.pickHtmlFile === "function"){
+        // on évite les prompts : à déclencher manuellement si tu veux
+        console.log("[DISK] File System API dispo — appelle pickHtmlFile() si tu veux figer l'HTML.");
+      }
+    }catch(e){
+      console.warn("[DISK] sauvegarde HTML KO:", e);
+    }
+
+    // 4) rafraîchit l’UI
     try{
       if (typeof window.refreshActivePage === "function") window.refreshActivePage();
       else if (typeof window.renderAccueil === "function") window.renderAccueil();
       else if (typeof window.buildTabs === "function") { window.buildTabs(); if (typeof window.renderAccueil === "function") window.renderAccueil(); }
     }catch(_){}
 
-    // 5) en dernier recours, on recharge (clé bonne → pas de reset)
+    // 5) (optionnel) reload — mais par défaut OFF pour éviter l’effet “reset”
     if (FORCE_RELOAD_AFTER_PULL){
-      // si l’écran semble “vide” (ex: aucune salle/praticien rendue), on force un reload
-      const looksEmptyInUi =
-        !(Array.isArray(j.rooms) && j.rooms.length) &&
-        !(Array.isArray(j.practitioners) && j.practitioners.length) &&
-        !(Array.isArray(j.specialties) && j.specialties.length);
-      // même si ça paraît rempli, certaines vues cachent des caches → on recharge pour repartir du boot officiel
-      setTimeout(()=>{ try{ location.reload(); }catch(_){ } }, looksEmptyInUi ? 60 : 120);
-      console.log("[PULL] reload programmé (KEY=", key, ")");
+      setTimeout(()=>{ try{ location.reload(); }catch(_){ } }, 150);
     }
+
+    console.log("[PULL] injecté. Keys écrites:", writtenKeys, "· EMBED:", embedId || "none");
   }
 
-  /* ====== Capture exacte de l’export (bloque le téléchargement .json) ====== */
+  /* ====== Capture exacte de l’export (et bloque le download .json) ====== */
   async function captureExportPayload(timeoutMs = 2000){
     let resolved = false, restored = false;
     const origCreate = URL.createObjectURL;
@@ -3355,8 +3380,8 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
         try{
           if (this && this.href && String(this.href).startsWith("blob:") &&
               ((this.download && /\.json$/i.test(this.download)) || /json/i.test(this.type || ""))) {
-            console.log("[CAPTURE EXPORT] téléchargement JSON bloqué:", this.download || this.href);
-            return; // on bloque le download
+            console.log("[CAPTURE EXPORT] download JSON bloqué:", this.download || this.href);
+            return; // bloque le téléchargement
           }
         }catch(_){}
         return origClick.apply(this, arguments);
@@ -3388,11 +3413,7 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
       if (btn) btn.click(); else console.warn("⚠️ #btnExport introuvable — clique manuellement sur « Exporter JSON ».");
 
       await sleep(timeoutMs);
-
-      if (!resolved){
-        restore();
-        resolve(null);
-      }
+      if (!resolved){ restore(); resolve(null); }
     });
   }
 
@@ -3508,7 +3529,5 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   };
 })();
 </script>
-
-
 
 </body></html>
