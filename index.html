@@ -3178,18 +3178,20 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 </script>
 
 
-<script>
+
+
+
+
+  <script>
 (() => {
   "use strict";
 
-  /* ====== CONFIG (déjà validée chez toi) ====== */
+  /* ====== CONFIG (les valeurs qui marchent déjà) ====== */
   const API_KEY = '1c5f1698-c8f7-4992-988a-d1ae29cb35ee';
   const URI     = 'https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c';
   const VERIFY_AFTER_PUSH = true;   // relit après push pour vérifier
-  const MIN_BYTES_SAFETY  = 2000;   // garde-fou pour éviter d’écraser avec un snapshot vide
-  const STORAGE_KEY       = (window && window.KEY) || 'neptune';
 
-  /* ====== HELPERS UI / META ====== */
+  /* ====== UTIL ====== */
   const withKey = (u) => u + (u.includes('?') ? '&' : '?') + 'apiKey=' + encodeURIComponent(API_KEY);
   const now     = () => { try { return new Date().toLocaleTimeString(); } catch(_) { return ''; } };
   function status(msg){
@@ -3203,107 +3205,103 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
       return id;
     }catch(_){ return 'device'; }
   }
+  const clone = (x) => JSON.parse(JSON.stringify(x));
 
-  /* ====== Sélectionne la source réelle des données ====== */
-  function resolveSource(){
-    // 1) Tente la variable globale "data" (utilisée par Export JSON)
-    try{
-      if (typeof data !== 'undefined' && data && typeof data === 'object') {
-        return { src: 'global:data', obj: data };
-      }
-    }catch(_){}
-
-    // 2) Sinon window.data si structure Neptune plausible
-    if (window && window.data && typeof window.data === 'object') {
-      const d = window.data;
-      if ((Array.isArray(d.rooms) && d.rooms.length) ||
-          (Array.isArray(d.practitioners) && d.practitioners.length) ||
-          (Array.isArray(d.specialties) && d.specialties.length)) {
-        return { src: 'window.data', obj: d };
-      }
+  /* ====== RECONSTRUCTION DU SNAPSHOT COMPLET ====== */
+  function buildSnapshot() {
+    // 1) Si l’app expose un extracteur “officiel”, on l’utilise
+    const extractors = ['__neptuneExtract','extractData','getExportData','exportJSON','toJSON'];
+    for (const fn of extractors) {
+      try{
+        if (typeof window[fn] === 'function') {
+          const out = window[fn]();
+          if (out && typeof out === 'object') {
+            const obj = clone(out);
+            ensureMeta(obj);
+            return obj;
+          }
+        }
+      }catch(e){ console.warn('[Snapshot:'+fn+']', e); }
     }
 
-    // 3) Sinon, fallback localStorage
+    // 2) Si window.data ressemble déjà au gros objet attendu
     try{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const j = JSON.parse(raw);
-        return { src: 'localStorage:'+STORAGE_KEY, obj: j };
+      if (window.data && typeof window.data === 'object') {
+        const j = clone(window.data);
+        // heuristique: on préfère un objet qui contient des gros tableaux attendus
+        const keys = Object.keys(j);
+        const looksBig =
+          ('rooms' in j && Array.isArray(j.rooms) && j.rooms.length) ||
+          ('specialties' in j && Array.isArray(j.specialties) && j.specialties.length) ||
+          ('practitioners' in j && Array.isArray(j.practitioners) && j.practitioners.length) ||
+          ('absences' in j) || ('absencesIntern' in j);
+        if (looksBig) {
+          ensureMeta(j);
+          return j;
+        }
       }
-    }catch(_){}
+    }catch(e){ console.warn('[Snapshot:data]', e); }
 
-    // 4) Rien trouvé
-    return { src: 'empty', obj: {} };
+    // 3) Sinon, on tente d’agréger les variables globales connues
+    const agg = {};
+    ['specialties','practitioners','interns','rooms','absences','absencesIntern'].forEach(k=>{
+      if (window[k] !== undefined) agg[k] = window[k];
+    });
+    if (Object.keys(agg).length) {
+      const j = clone(agg);
+      ensureMeta(j);
+      return j;
+    }
+
+    // 4) Fallback: au moins un objet valide
+    const j = {};
+    ensureMeta(j);
+    return j;
   }
 
-  /* ====== Applique un JSON importé dans l’app (comme Import JSON) ====== */
+  function ensureMeta(obj){
+    try{
+      if (!obj.__meta) obj.__meta = {};
+      obj.__meta.updatedAt = new Date().toISOString();
+      obj.__meta.by        = deviceId();
+    }catch(_){}
+  }
+
   function applyImported(j){
+    // Migration / résumé si dispo
     try{ if (window.__neptuneMigrateData) j = window.__neptuneMigrateData(j); }catch(_){}
-    // Mets à jour window.data ET essaie de mettre la globale data si elle existe
     window.data = j || {};
-    try{ data = window.data; }catch(_){}
     try{ if (typeof window.save === 'function') window.save(); }catch(_){}
     try{
       if (typeof window.refreshActivePage === 'function') window.refreshActivePage();
-      else if (typeof window.renderAccueil   === 'function') window.renderAccueil();
+      else if (typeof window.renderAccueil === 'function') window.renderAccueil();
     }catch(_){}
     try{ if (window.__neptuneSummarizeData) window.__neptuneSummarizeData(window.data); }catch(_){}
   }
 
   /* ====== I/O JsonStorage ====== */
   async function jsGet(){
-    const url = withKey(URI) + '&_ts=' + Date.now(); // cache-bust
+    const url = withKey(URI) + '&_ts=' + Date.now(); // anti-cache
     const r = await fetch(url, { method:'GET', cache:'no-store', headers:{ 'Cache-Control':'no-cache' } });
     if (!r.ok) throw new Error('GET '+r.status);
     return r.json();
   }
   async function jsPut(obj){
+    const body = JSON.stringify(obj ?? {});
     const r = await fetch(withKey(URI), {
       method: 'PUT',
       headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify(obj ?? {}),
+      body,
       cache: 'no-store'
     });
-    if (!r.ok) throw new Error('PUT '+r.status);
+    if (!r.ok) {
+      const t = await r.text().catch(()=> '');
+      throw new Error('PUT '+r.status+' — '+t.slice(0,200));
+    }
     return true;
   }
 
-  /* ====== Construit le VRAI snapshot (comme Export JSON) ====== */
-  function makeSnapshotAndStamp(){
-    // synchro UI -> modèle
-    try{ if (typeof window.save === 'function') window.save(); }catch(_){}
-
-    const { src, obj } = resolveSource();
-
-    // timbre méta commun, copié à la fois dans la source et dans le snapshot
-    const ts = new Date().toISOString();
-    const by = deviceId();
-
-    // pose le timbre dans la source vivante…
-    try{
-      if (!obj.__meta) obj.__meta = {};
-      obj.__meta.updatedAt = ts;
-      obj.__meta.by        = by;
-    }catch(_){}
-
-    // …puis clone profond pour constituer le snapshot PUT
-    let snap = {};
-    try{ snap = JSON.parse(JSON.stringify(obj)); }catch(_){ snap = obj || {}; }
-    try{
-      if (!snap.__meta) snap.__meta = {};
-      snap.__meta.updatedAt = ts;
-      snap.__meta.by        = by;
-    }catch(_){}
-
-    // taille informative
-    let bytes = 0;
-    try{ bytes = (new TextEncoder()).encode(JSON.stringify(snap)).length; }
-    catch(_){ try{ bytes = JSON.stringify(snap).length; }catch(__){} }
-
-    return { snap, ts, src, bytes };
-  }
-
-  /* ====== Actions (même logique que Import/Export JSON) ====== */
+  /* ====== Actions ====== */
   async function simplePull(){
     try{
       status('Lecture…');
@@ -3319,21 +3317,24 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   async function simplePush(){
     try{
       status('Préparation…');
-      const { snap, ts, src, bytes } = makeSnapshotAndStamp();
+      // ⚠️ on ne dépend pas de save() pour remplir — on reconstruit un snapshot complet
+      let snapshot = buildSnapshot();
+      const size   = JSON.stringify(snapshot).length;
 
-      // Garde-fou : évite d’écraser le distant avec un dataset trop petit
-      if (bytes < MIN_BYTES_SAFETY) {
-        console.warn('[JsonStorage] Snapshot trop petit — push annulé. source=', src, 'bytes=', bytes);
-        status('Données locales insuffisantes — push annulé');
+      // garde-fou: si c’est ridiculement petit, on prévient et on n’écrase pas le distant
+      if (size < 2000 || !snapshot.rooms) {
+        console.warn('[Push annulé] Snapshot trop petit ou incomplet', { size, keys:Object.keys(snapshot) });
+        status('Échec écriture : snapshot incomplet (voir console)');
         return;
       }
 
-      status('Écriture…');
-      await jsPut(snap);
+      status('Écriture… ('+size+' octets)');
+      await jsPut(snapshot);
 
-      if (VERIFY_AFTER_PUSH){
+      if ( VERIFY_AFTER_PUSH ) {
         const back = await jsGet();
-        const ok = !!(back && back.__meta && back.__meta.updatedAt === ts);
+        const ok = !!(back && back.__meta && snapshot.__meta &&
+                      back.__meta.updatedAt === snapshot.__meta.updatedAt);
         status(ok ? 'Enregistré (vérifié) ✅' : 'Enregistré (à vérifier)');
       } else {
         status('Enregistré sur JsonStorage ✅');
@@ -3344,7 +3345,7 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     }
   }
 
-  /* ====== Bind UI (ne plante pas si un ID manque) ====== */
+  /* ====== Bind UI ====== */
   function bindClick(id, fn){
     const el = document.getElementById(id);
     if (el && !el.__bound){ el.__bound = true; el.addEventListener('click', fn); }
@@ -3354,16 +3355,35 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   bindClick('btnSimplePush', simplePush);
 
   /* ====== Outils console ====== */
-  window.__jsonstorage = {
-    URI, API_KEY, simplePull, simplePush, jsGet, jsPut,
-    resolveSource,
-    probe: async () => {
-      const { snap, ts } = makeSnapshotAndStamp();
-      snap.__probe_roundtrip = ts;
-      await jsPut(snap);
-      const back = await jsGet();
-      return { putStamp: ts, gotStamp: back && back.__probe_roundtrip, ok: (back && back.__probe_roundtrip) === ts };
+  async function probeRoundTrip(){
+    const mark = 'rt-' + Date.now();
+    let snap = buildSnapshot();
+    // injecte un marqueur visible pour vérifier que le gros objet part et revient
+    snap.__probe = mark;
+    const size = JSON.stringify(snap).length;
+    console.table(Object.entries({
+      'Taille snapshot (octets)': size
+    }));
+    if (size < 2000) {
+      console.warn('⚠️ Snapshot semble incomplet. Clés:', Object.keys(snap));
+      return { ok:false, reason:'small-snapshot', size, keys:Object.keys(snap) };
     }
+    await jsPut(snap);
+    const back = await jsGet();
+    const ok = back && back.__probe === mark;
+    console.table(Object.entries({
+      'HTTP GET OK ?': !!back,
+      'Marqueur attendu': mark,
+      'Marqueur lu': back && back.__probe,
+      'Round-trip OK ?': ok
+    }));
+    return { ok, size };
+  }
+
+  window.__jsonstorage = {
+    URI, API_KEY,
+    simplePull, simplePush, jsGet, jsPut,
+    buildSnapshot, probeRoundTrip
   };
 })();
 </script>
