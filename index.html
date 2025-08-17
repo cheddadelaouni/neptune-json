@@ -3182,7 +3182,7 @@ $('btnExport').onclick=function(){
     catch(e){ return 'interne'; }
   };
 
-  /* ===== switchTab : forcer l’accès à Sauvegarde pour tous ; réserver Semaine type à l’Admin ===== */
+  /* ===== switchTab : Sauvegarde accessible à tous ; Semaine type admin-only ===== */
   (function(){
     var orig = window.switchTab;
     window.switchTab = function(id, btn){
@@ -3196,23 +3196,18 @@ $('btnExport').onclick=function(){
 
       // — Forçage spécial pour "page-save" (Sauvegarde) —
       if(id === 'page-save'){
-        // 1) Tente l’original (au cas où) mais on ne s’y fie pas
         if(typeof orig === 'function'){ try{ orig(id, btn); }catch(e){} }
-
-        // 2) Forcer l’affichage de la section Sauvegarde quoi qu’il arrive
         try{
           document.querySelectorAll('section').forEach(function(s){ s.classList.add('hidden'); });
           var sec = document.getElementById('page-save');
           if(sec){ sec.classList.remove('hidden'); }
         }catch(e){}
-
-        // 3) Recréer l’UI de sauvegarde + appliquer verrous
         try{ if(typeof window.buildSave === 'function') window.buildSave(); }catch(e){}
         try{ if(typeof window.applyRoleLocks === 'function') window.applyRoleLocks(); }catch(e){}
         return;
       }
 
-      // — Comportement normal pour les autres onglets —
+      // — Autres onglets —
       if(typeof orig === 'function'){ return orig(id, btn); }
       var target = document.getElementById(id);
       if(target){
@@ -3223,9 +3218,37 @@ $('btnExport').onclick=function(){
     };
   })();
 
-  /* ===== Verrous : tout autoriser dans Sauvegarde sauf "Réinitialiser" (admin-only) ===== */
+  /* ===== Verrous : Interne = lecture seule ; Senior = édition ; Reset admin-only ===== */
   (function(){
     var origLocks = window.applyRoleLocks;
+
+    function disableEl(el, title){
+      el.disabled = true;
+      el.style.opacity = '0.5';
+      el.style.pointerEvents = 'none';
+      el.setAttribute('aria-disabled','true');
+      if(title){ el.title = title; } else if(!el.title){ el.title = 'Lecture seule'; }
+      el.tabIndex = -1;
+    }
+    function enableEl(el){
+      el.disabled = false;
+      el.style.opacity = '';
+      el.style.pointerEvents = '';
+      el.removeAttribute('aria-disabled');
+      if(el.title === 'Lecture seule' || /Accès réservé/.test(el.title||'')) el.title = '';
+      el.tabIndex = 0;
+    }
+
+    // garde-fou pour Reset (on enlève/remet le listener si besoin)
+    function setResetGuard(admin){
+      var btn = document.getElementById('btnReset');
+      if(!btn) return;
+      if(btn._resetGuard){ btn.removeEventListener('click', btn._resetGuard, true); btn._resetGuard=null; }
+      if(!admin){
+        btn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
+        btn.addEventListener('click', btn._resetGuard, true);
+      }
+    }
 
     window.applyRoleLocks = function(){
       if(typeof origLocks === 'function'){ try{ origLocks(); }catch(e){} }
@@ -3233,47 +3256,72 @@ $('btnExport').onclick=function(){
       var active = document.querySelector('section:not(.hidden)');
       if(!active) return;
 
-      // Onglet Sauvegarde : ré-autoriser tout, sauf Réinitialiser si ≠ admin
-      if(active.id === 'page-save'){
-        var r = (function(){ try{return getRole();}catch(e){return 'interne';} })();
+      var r = getRole();
 
-        // (A) Tout réactiver
+      // ======= Onglet Sauvegarde =======
+      if(active.id === 'page-save'){
+        // IDs connus
+        var ids = {
+          importBtn: 'btnImport',
+          fileImport:'fileImport',
+          exportBtn: 'btnExport',
+          pullBtn:   'btnSimplePull',   // << le seul autorisé pour INTERNE
+          pushBtn:   'btnSimplePush',
+          resetBtn:  'btnReset'
+        };
+
+        // Politique par rôle
+        var allow = {};
+        if(r === 'admin'){
+          allow = { ALL:true };
+        } else if(r === 'senior'){
+          allow[ids.importBtn]=true;
+          allow[ids.fileImport]=true;
+          allow[ids.exportBtn]=true;
+          allow[ids.pullBtn]=true;
+          allow[ids.pushBtn]=true;
+          // reset reste admin-only
+        } else { // interne
+          allow[ids.pullBtn]=true; // UNIQUEMENT Recharger
+        }
+
+        // Appliquer
         var nodes = active.querySelectorAll('input, button, select, textarea');
         nodes.forEach(function(el){
-          el.disabled = false;
-          el.style.opacity = '';
-          el.style.pointerEvents = '';
-          el.removeAttribute('aria-disabled');
-          el.title = (el.id==='btnReset'? el.title : '');
+          var id = el.id || '';
+          if(r === 'admin'){
+            enableEl(el);
+          }else{
+            if(allow[id]) enableEl(el);
+            else disableEl(el, (id===ids.resetBtn?'Accès réservé à l’administrateur':'Lecture seule'));
+          }
         });
 
-        // (B) Admin-only pour Réinitialiser
-        var btn = document.getElementById('btnReset');
-        if(btn){
-          // Retirer d’anciens garde-fous si présents
-          if(btn._resetGuard){ btn.removeEventListener('click', btn._resetGuard, true); btn._resetGuard=null; }
-          if(r !== 'admin'){
-            btn.disabled = true;
-            btn.style.pointerEvents = 'none';
-            btn.style.opacity = '0.5';
-            btn.setAttribute('aria-disabled','true');
-            btn.tabIndex = -1;
-            if(!/Accès réservé/.test(btn.title||'')) btn.title = 'Accès réservé à l’administrateur';
-            btn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
-            btn.addEventListener('click', btn._resetGuard, true);
-          }else{
-            btn.disabled = false;
-            btn.style.pointerEvents = '';
-            btn.style.opacity = '';
-            btn.removeAttribute('aria-disabled');
-            btn.tabIndex = 0;
-            if(btn.title === 'Accès réservé à l’administrateur') btn.title = '';
-          }
+        // Admin-only pour Réinitialiser
+        var resetBtn = document.getElementById(ids.resetBtn);
+        if(resetBtn){
+          if(r === 'admin'){ enableEl(resetBtn); setResetGuard(true); }
+          else { disableEl(resetBtn, 'Accès réservé à l’administrateur'); setResetGuard(false); }
         }
+        return;
       }
+
+      // ======= Autres onglets : Interne = lecture seule (laisser navigation/onglets/filtre) =======
+      if(r === 'interne'){
+        var nodes2 = active.querySelectorAll('input, button, select, textarea');
+        nodes2.forEach(function(el){
+          // ne pas bloquer la barre d’onglets ni les filtres/navigation
+          var inTabs = !!(el.closest && el.closest('#tabs'));
+          var id = el.id || '';
+          var isFilter = /^acc|^cal|^month|^year|^week|^accMode|^calMode|^accPrev|^accNext|^accYear|^accWeek|^accMonth|^calYear|^calMonth/.test(id);
+          if(inTabs || isFilter){ return; }
+          disableEl(el);
+        });
+      }
+      // Senior/Admin : pas de restriction hors page-save
     };
 
-    // Rendre visible/cliquable le bouton d’onglet "Sauvegarde" dans la barre d’onglets
+    // Afficher le bouton d’onglet "Sauvegarde" si caché
     function ensureSaveTabButton(){
       var tabs = document.getElementById('tabs');
       if(!tabs) return;
@@ -3313,6 +3361,7 @@ $('btnExport').onclick=function(){
   })();
 })();
 </script>
+
 
 
   
