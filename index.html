@@ -3177,8 +3177,7 @@ $('btnExport').onclick=function(){
 
 
 
-
-<script>
+  <script>
 (function(){
   /* ===== Helper rôle ===== */
   window.getRole = function(){
@@ -3200,17 +3199,19 @@ $('btnExport').onclick=function(){
 
       // — Forçage spécial pour "page-save" (Sauvegarde) —
       if(id === 'page-save'){
+        // 1) Tente l’original (au cas où) mais on ne s’y fie pas
         if(typeof orig === 'function'){ try{ orig(id, btn); }catch(e){} }
 
+        // 2) Forcer l’affichage de la section Sauvegarde quoi qu’il arrive
         try{
           document.querySelectorAll('section').forEach(function(s){ s.classList.add('hidden'); });
           var sec = document.getElementById('page-save');
           if(sec){ sec.classList.remove('hidden'); }
         }catch(e){}
 
+        // 3) Recréer l’UI de sauvegarde + appliquer verrous
         try{ if(typeof window.buildSave === 'function') window.buildSave(); }catch(e){}
         try{ if(typeof window.applyRoleLocks === 'function') window.applyRoleLocks(); }catch(e){}
-
         return;
       }
 
@@ -3225,165 +3226,175 @@ $('btnExport').onclick=function(){
     };
   })();
 
-    /* ===== Verrous : droits par rôle dans l’onglet Sauvegarde ===== */
+  /* ===== Verrous : tout autoriser dans Sauvegarde sauf "Réinitialiser" (admin-only),
+                     et interdire "Pousser" aux internes (mais "Recharger" OK) ===== */
   (function(){
     var origLocks = window.applyRoleLocks;
 
-    function role(){
-      try{
-        var r = sessionStorage.getItem('neptuneRole');
-        return r || (sessionStorage.getItem('neptuneAuth')==='ok' ? 'admin' : 'interne');
-      }catch(e){ return 'interne'; }
-    }
     function enableEl(el){
-      if(!el) return;
       el.disabled = false;
       el.style.opacity = '';
       el.style.pointerEvents = '';
       el.removeAttribute('aria-disabled');
-      if(/Lecture seule|Accès réservé/i.test(el.title||'')) el.title = '';
+      if(/Lecture seule|Accès réservé/.test(el.title||'')) el.title = '';
       el.tabIndex = 0;
     }
     function disableEl(el, title){
-      if(!el) return;
       el.disabled = true;
       el.style.opacity = '0.5';
       el.style.pointerEvents = 'none';
       el.setAttribute('aria-disabled','true');
-      el.title = title || 'Lecture seule';
+      if(title){ el.title = title; } else if(!el.title){ el.title = 'Lecture seule'; }
       el.tabIndex = -1;
     }
-    function guard(btn, key, msg){
-      if(!btn) return;
-      if(btn[key]){ btn.removeEventListener('click', btn[key], true); btn[key]=null; }
-      var fn = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert(msg); return false; };
-      btn.addEventListener('click', fn, true);
-      btn[key] = fn;
-    }
-    function unguard(btn, key){
-      if(btn && btn[key]){ btn.removeEventListener('click', btn[key], true); btn[key]=null; }
+
+    // Détection robuste d’un bouton "push/pousser/sauvegarder/publier/upload/sync"
+    function isPushControl(el){
+      var id  = (el.id||'').toLowerCase();
+      var nm  = (el.name||'').toLowerCase();
+      var txt = (el.textContent||'').toLowerCase();
+      var on  = (el.getAttribute('onclick')||'').toLowerCase();
+      var act = (el.getAttribute('data-action')||'').toLowerCase();
+      var sig = id+' '+nm+' '+txt+' '+on+' '+act;
+      return /btnsimplepush|push|pousser|enregistrer|sauvegarder|publier|upload|sync|synchro/.test(sig);
     }
 
-    // Heuristiques de détection
-    function isPushLike(el){
-      var sig = (
-        (el.id||'')+' '+(el.name||'')+' '+(el.textContent||'')+
-        ' '+(el.getAttribute('onclick')||'')+' '+(el.getAttribute('data-action')||'')
-      ).toLowerCase();
-      return /btnsimplepush|push|pousser|publier|upload|sync|synchro/.test(sig);
-    }
-    function isResetLike(el){
-      var sig = (
-        (el.id||'')+' '+(el.name||'')+' '+(el.textContent||'')+
-        ' '+(el.getAttribute('onclick')||'')+' '+(el.getAttribute('data-action')||'')
-      ).toLowerCase();
-      return /btnreset|reset|réinit|reinit|reinitialiser|réinitialiser|factory|wipe|clear/.test(sig);
-    }
-    function findPull(active){
-      var byId = active.querySelector('#btnSimplePull');
-      if(byId) return byId;
-      // fallback heuristique
-      var cands = active.querySelectorAll('button, input[type="button"], input[type="submit"], a');
-      for(var i=0;i<cands.length;i++){
-        var el=cands[i], s=(el.textContent||el.value||'').toLowerCase();
-        if(/recharger|reload|refresh|pull|actualiser|mettre à jour/.test(s)) return el;
-      }
-      return null;
-    }
+    // Garde-fou global capturant pour empêcher un "push" même si un script réactive le bouton
+    function installInternePushCapture(container){
+      if(container._internePushCaptureInstalled) return;
+      container.addEventListener('click', function(ev){
+        try{
+          var r = getRole();
+          if(r !== 'interne') return;
+          var el = ev.target && (ev.target.closest && ev.target.closest('button, input[type="button"], input[type="submit"], a'));
+          if(!el) return;
+          if(isPushControl(el)){
+            ev.preventDefault(); ev.stopImmediatePropagation();
+            alert('Pousser est réservé aux seniors/administrateurs.');
+          }
+        }catch(e){}
+      }, true);
+      container._internePushCaptureInstalled = true;
 
-    // Capture générique (empêche push/reset même si réactivés par un autre script)
-    function installCapture(active){
-      if(active._saveCaptureInstalled) return;
-      active.addEventListener('click', function(ev){
-        var r = role();
-        var el = ev.target && (ev.target.closest && ev.target.closest('button, input[type="button"], input[type="submit"], a'));
-        if(!el) return;
-        // Interne : bloquer push & reset
-        if(r==='interne' && (isPushLike(el) || isResetLike(el))){
-          ev.preventDefault(); ev.stopImmediatePropagation();
-          alert('Action réservée aux seniors/administrateurs.');
-        }
-        // Senior : bloquer reset
-        if(r==='senior' && isResetLike(el)){
-          ev.preventDefault(); ev.stopImmediatePropagation();
-          alert('Accès réservé à l’administrateur.');
-        }
+      // Bloque aussi les submits génériques
+      container.addEventListener('submit', function(ev){
+        try{
+          var r = getRole();
+          if(r !== 'interne') return;
+          var btn = container.querySelector('button[type="submit"], input[type="submit"]');
+          if(btn && isPushControl(btn)){
+            ev.preventDefault(); ev.stopImmediatePropagation();
+            alert('Pousser est réservé aux seniors/administrateurs.');
+          }
+        }catch(e){}
       }, true);
-      active.addEventListener('submit', function(ev){
-        var r = role();
-        var btn = active.querySelector('button[type="submit"], input[type="submit"]');
-        if(!btn) return;
-        if(r==='interne' && (isPushLike(btn) || isResetLike(btn))){
-          ev.preventDefault(); ev.stopImmediatePropagation();
-          alert('Action réservée aux seniors/administrateurs.');
-        }
-        if(r==='senior' && isResetLike(btn)){
-          ev.preventDefault(); ev.stopImmediatePropagation();
-          alert('Accès réservé à l’administrateur.');
-        }
-      }, true);
-      active._saveCaptureInstalled = true;
     }
 
     window.applyRoleLocks = function(){
       if(typeof origLocks === 'function'){ try{ origLocks(); }catch(e){} }
 
       var active = document.querySelector('section:not(.hidden)');
-      if(!active || active.id !== 'page-save') return;
+      if(!active) return;
 
-      var r = role();
+      // On ne touche qu'à l’onglet Sauvegarde
+      if(active.id === 'page-save'){
+        var r; try{ r = getRole(); }catch(e){ r = 'interne'; }
 
-      // 0) Tout activer d'abord (important pour le push Senior : sérialise TOUT)
-      var nodes = active.querySelectorAll('input, button, select, textarea');
-      nodes.forEach(enableEl);
+        // IDs connus dans l’onglet sauvegarde
+        var ids = {
+          importBtn: 'btnImport',
+          fileImport:'fileImport',
+          exportBtn: 'btnExport',
+          pullBtn:   'btnSimplePull',   // Interne : autorisé
+          pushBtn:   'btnSimplePush',   // Interne : INTERDIT
+          resetBtn:  'btnReset'
+        };
 
-      // 1) Récup id connus + ensembles heuristiques
-      var resetKnown = active.querySelector('#btnReset');
-      var pushKnown  = active.querySelector('#btnSimplePush');
-      var pullKnown  = findPull(active);
+        // (A) Tout réactiver d'abord (état propre)
+        var nodes = active.querySelectorAll('input, button, select, textarea');
+        nodes.forEach(enableEl);
 
-      var controls = Array.from(active.querySelectorAll('button, input[type="button"], input[type="submit"], a'));
-      var pushAll  = controls.filter(isPushLike);
-      if(pushKnown && pushAll.indexOf(pushKnown)<0) pushAll.push(pushKnown);
-      var resetAll = controls.filter(isResetLike);
-      if(resetKnown && resetAll.indexOf(resetKnown)<0) resetAll.push(resetKnown);
+        // (B) Admin-only pour Réinitialiser
+        var reset = document.getElementById(ids.resetBtn);
+        if(reset){
+          if(reset._resetGuard){ reset.removeEventListener('click', reset._resetGuard, true); reset._resetGuard = null; }
+          if(r !== 'admin'){
+            disableEl(reset, 'Accès réservé à l’administrateur');
+            reset._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
+            reset.addEventListener('click', reset._resetGuard, true);
+          }
+        }
 
-      // 2) Admin
-      if(r === 'admin'){
-        // tout actif (incl. reset/push)
-        resetAll.forEach(function(b){ unguard(b,'_resetGuard'); enableEl(b); });
-        pushAll.forEach(function(b){ unguard(b,'_pushGuard'); enableEl(b); });
+        // (C) Interne : interdire **toute action de push**
+        if(r === 'interne'){
+          // 1) Bouton(s) connus par ID
+          var knownPush = document.getElementById(ids.pushBtn);
+          if(knownPush){
+            disableEl(knownPush, 'Action non autorisée (réservé Sénior/Admin)');
+            if(knownPush._pushGuard){ knownPush.removeEventListener('click', knownPush._pushGuard, true); }
+            knownPush._pushGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Pousser est réservé aux seniors/administrateurs.'); return false; };
+            knownPush.addEventListener('click', knownPush._pushGuard, true);
+          }
+          // 2) Heuristique : tout contrôle ressemblant à un "push"
+          var suspects = active.querySelectorAll('button, input[type="button"], input[type="submit"], a');
+          suspects.forEach(function(el){
+            if(isPushControl(el)){
+              disableEl(el, 'Action non autorisée (réservé Sénior/Admin)');
+            }
+          });
+          // 3) Capture globale (si l’UI est reconstruite ultérieurement)
+          installInternePushCapture(active);
+          // NB : le bouton "Recharger" (pull) reste actif (ids.pullBtn)
+        }
+
+        // (D) Seniors : inchangé (Import/Export/Recharger/Pousser OK ; Reset interdit ci-dessus)
         return;
       }
 
-      // 3) Senior : push OK complet ; reset interdit
-      if(r === 'senior'){
-        pushAll.forEach(function(b){ unguard(b,'_pushGuard'); enableEl(b); });
-        resetAll.forEach(function(b){ disableEl(b,'Accès réservé à l’administrateur'); guard(b,'_resetGuard','Accès réservé à l’administrateur.'); });
-        installCapture(active);
-        return;
-      }
-
-      // 4) Interne : recharger uniquement ; push & reset interdits
-      // Tout désactiver d'abord (sauf reset qu'on gère ensuite)
-      nodes.forEach(function(el){ disableEl(el); });
-      // Recharger autorisé
-      if(pullKnown) enableEl(pullKnown);
-
-      // Bloquer push & reset (tous)
-      pushAll.forEach(function(b){ disableEl(b,'Pousser réservé au Senior/Admin'); guard(b,'_pushGuard','Pousser est réservé aux seniors/administrateurs.'); });
-      resetAll.forEach(function(b){ disableEl(b,'Accès réservé à l’administrateur'); guard(b,'_resetGuard','Accès réservé à l’administrateur.'); });
-
-      installCapture(active);
+      // Autres onglets : inchangés
     };
 
+    // Bouton d’onglet "Sauvegarde" visible/cliquable
+    function ensureSaveTabButton(){
+      var tabs = document.getElementById('tabs');
+      if(!tabs) return;
+      var found = false;
+      var btns = tabs.querySelectorAll('button, a, [data-target], [data-page]');
+      btns.forEach(function(el){
+        var sig = (el.getAttribute('data-target')||'') + ' ' +
+                  (el.getAttribute('data-page')||'') + ' ' +
+                  (el.getAttribute('href')||'') + ' ' +
+                  (el.getAttribute('onclick')||'') + ' ' +
+                  (el.textContent||'');
+        if(/page-save|#page-save|Sauvegarde/i.test(sig)){
+          el.style.display = '';
+          el.disabled = false;
+          el.removeAttribute('aria-hidden');
+          el.style.pointerEvents = '';
+          if(!el._saveHooked){
+            el.addEventListener('click', function(e){ e.preventDefault(); window.switchTab('page-save', el); }, false);
+            el._saveHooked = true;
+          }
+          found = true;
+        }
+      });
+      if(!found){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = 'Sauvegarde';
+        b.addEventListener('click', function(){ window.switchTab('page-save', b); }, false);
+        tabs.appendChild(b);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', function(){
-      try{ if(typeof window.applyRoleLocks==='function') window.applyRoleLocks(); }catch(e){}
+      try{ ensureSaveTabButton(); }catch(e){}
+      try{ if(typeof window.applyRoleLocks === 'function') window.applyRoleLocks(); }catch(e){}
     });
   })();
-
-
+})();
 </script>
+
 
 
 
