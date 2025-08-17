@@ -1088,7 +1088,8 @@ function isRestAfterGuard(week, dayIdx, name){
   function switchTab(id, btn){
   try{
     var _role = (sessionStorage.getItem('neptuneRole') || (sessionStorage.getItem('neptuneAuth')==='ok' ? 'admin' : 'interne'));
-    if(_role !== 'admin' && (id==='page-data' || id==='page-week' || id==='page-save')){ alert('Accès réservé à l’administrateur.'); return; }
+    // Autoriser l'onglet Sauvegarde à tous ; "Données" et "Semaine type" restent admin-only
+if(_role !== 'admin' && (id==='page-data' || id==='page-week')){ alert('Accès réservé à l’administrateur.'); return; }
   }catch(e){}
 
     for(var i=0;i<TABS.length;i++){ var sec=$(TABS[i][0]); if(sec) sec.className = (TABS[i][0]===id? '':'hidden'); 
