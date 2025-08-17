@@ -3186,95 +3186,30 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 (() => {
   "use strict";
 
-  /* ====== CONFIG ====== */
+  /* ====== CONFIG JsonStorage ====== */
   const API_KEY = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
   const URI     = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
-  const VERIFY_AFTER_PUSH = true;
-
-  /* ====== HELPERS ====== */
   const withKey = (u) => u + (u.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(API_KEY);
-  const now     = () => { try { return new Date().toLocaleTimeString(); } catch(_) { return ""; } };
-  function status(msg){
-    const el = document.getElementById("simpleSaveStatus") || document.getElementById("barStatus");
-    if (el) el.textContent = msg + (now() ? (" ("+now()+")") : "");
-  }
-  function deviceId(){
-    try{
+
+  /* ====== Utils ====== */
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const devId = () => {
+    try {
       let id = localStorage.getItem("neptune-device");
-      if(!id){ id = Math.random().toString(36).slice(2)+"-"+Date.now().toString(36); localStorage.setItem("neptune-device", id); }
+      if (!id) { id = Math.random().toString(36).slice(2) + "-" + Date.now().toString(36); localStorage.setItem("neptune-device", id); }
       return id;
-    }catch(_){ return "device"; }
-  }
-  function ensureMeta(obj){
-    try{
-      obj = obj && typeof obj==="object" ? obj : {};
-      if (!obj.__meta) obj.__meta = {};
-      obj.__meta.updatedAt = new Date().toISOString();
-      obj.__meta.by        = deviceId();
-    }catch(_) {}
-    return obj;
-  }
+    } catch(_) { return "console"; }
+  };
+  const status = (msg) => {
+    const el = document.getElementById("simpleSaveStatus") || document.getElementById("barStatus");
+    if (el) el.textContent = msg + " " + new Date().toLocaleTimeString();
+    else console.log("[STATUS]", msg);
+  };
 
-  /* ====== RÉCUPÉRER *LE MÊME* OBJET QUE L'EXPORT ====== */
-  function grabData(){
-    // a) extracteur officiel si présent
-    const fns = ["__neptuneExtract","extractData","getExportData","exportJSON","toJSON"];
-    for (const fn of fns){
-      try{
-        if (typeof window[fn] === "function"){
-          const v = window[fn]();
-          if (v && typeof v === "object") return v;
-        }
-      }catch(_){}
-    }
-    // b) la variable globale "data" (même si elle n'est pas sur window)
-    try{
-      const v = Function("try { return data; } catch(e){ return undefined; }")();
-      if (v && typeof v === "object") return v;
-    }catch(_){}
-    // c) fallback : window.data
-    try{
-      if (window.data && typeof window.data === "object") return window.data;
-    }catch(_){}
-    return {};
-  }
-
-  function exportPayload(){
-    // synchroniser comme le ferait l’export
-    try { if (typeof save === "function") save(); } catch(_) {}
-    let obj = grabData();
-    try { obj = JSON.parse(JSON.stringify(obj)); } catch(_) {}
-    ensureMeta(obj);
-    return obj;
-  }
-
-  /* ====== I/O JsonStorage ====== */
-  async function jsGet(){
-    const url = withKey(URI) + "&_ts=" + Date.now(); // anti-cache
-    const r = await fetch(url, { method:"GET", cache:"no-store", headers:{ "Cache-Control":"no-cache" } });
-    if (!r.ok) throw new Error("GET "+r.status);
-    return r.json();
-  }
-  async function jsPut(obj){
-    const body = JSON.stringify(obj ?? {});
-    const r = await fetch(withKey(URI), {
-      method: "PUT",
-      headers: { "Content-Type":"application/json" },
-      body,
-      cache: "no-store"
-    });
-    if (!r.ok){
-      const t = await r.text().catch(()=> "");
-      throw new Error("PUT "+r.status+" — "+t.slice(0,200));
-    }
-    return true;
-  }
-
-  /* ====== APPLY IMPORT (met à jour data ET window.data) ====== */
+  /* ====== Application hooks (si présents) ====== */
   function applyImported(j){
     try{ if (window.__neptuneMigrateData) j = window.__neptuneMigrateData(j); }catch(_){}
-    try { data = j || {}; } catch(_) {}
-    try { window.data = j || {}; } catch(_) {}
+    try{ window.data = j || {}; }catch(_){}
     try{ if (typeof window.save === "function") window.save(); }catch(_){}
     try{
       if (typeof window.refreshActivePage === "function") window.refreshActivePage();
@@ -3283,11 +3218,130 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     try{ if (window.__neptuneSummarizeData) window.__neptuneSummarizeData(window.data); }catch(_){}
   }
 
-  /* ====== ACTIONS ====== */
+  /* ====== GET/PUT JsonStorage ====== */
+  async function jsGet(){
+    const r = await fetch(withKey(URI) + "&_ts=" + Date.now(), { cache:"no-store" });
+    if (!r.ok) throw new Error("GET "+r.status);
+    return r.json();
+  }
+  async function jsPut(obj){
+    const body = JSON.stringify(obj ?? {});
+    const r = await fetch(withKey(URI), { method:"PUT", headers:{ "Content-Type":"application/json" }, body, cache:"no-store" });
+    if (!r.ok) {
+      const t = await r.text().catch(()=> "");
+      throw new Error("PUT "+r.status+" — "+t.slice(0,200));
+    }
+    return true;
+  }
+
+  /* ====== Capture “Exporter JSON” (exactement le même payload) ====== */
+  async function captureExportPayload(timeoutMs = 1500){
+    return new Promise(async (resolve) => {
+      let restored = false;
+      const origCreate = URL.createObjectURL;
+
+      function restore(){
+        if (!restored) { URL.createObjectURL = origCreate; restored = true; }
+      }
+
+      let resolved = false;
+      URL.createObjectURL = function(blob){
+        try{
+          if (blob && blob instanceof Blob){
+            const r = new FileReader();
+            r.onload = () => {
+              try{
+                const txt = String(r.result || "");
+                const json = JSON.parse(txt);
+                window.__lastExport = json;
+                console.log("[CAPTURE EXPORT] taille =", txt.length, "octets · clés:", Object.keys(json));
+                if (!resolved){ resolved = true; restore(); resolve(json); }
+              }catch(e){
+                console.warn("[CAPTURE EXPORT] non-JSON:", e);
+              }
+            };
+            r.readAsText(blob);
+          }
+        }catch(e){ console.warn("Shim createObjectURL erreur:", e); }
+        return origCreate.apply(this, arguments);
+      };
+
+      // 1) Sauvegarde si possible
+      try{ if (typeof save === "function") save(); }catch(_){}
+
+      // 2) Clique sur le bouton Export
+      const btn = document.getElementById("btnExport");
+      if (btn) btn.click(); else console.warn("⚠️ #btnExport introuvable — clique manuellement sur « Exporter JSON ».");
+
+      // 3) Attends un peu
+      await sleep(timeoutMs);
+
+      // 4) Plan B: plus gros <script type="application/json" id^=NEPTUNE_EMBED>
+      if (!resolved && !window.__lastExport){
+        const embeds = [...document.querySelectorAll('script[type="application/json"][id^="NEPTUNE_EMBED"]')];
+        if (embeds.length){
+          const biggest = embeds.reduce((a,b)=> (a.textContent.length >= b.textContent.length ? a : b));
+          try{
+            const j = JSON.parse(biggest.textContent);
+            console.log("[FALLBACK EMBED] depuis", biggest.id, "taille =", biggest.textContent.length, "octets");
+            window.__lastExport = j;
+            resolved = true; restore(); resolve(j); return;
+          }catch(e){ console.warn("[FALLBACK EMBED] parse impossible:", e); }
+        }
+      }
+
+      // 5) Timeout → on rend ce qu’on a (ou null)
+      restore();
+      resolve(window.__lastExport || null);
+    });
+  }
+
+  /* ====== PUSH Exact (via export capturé) ====== */
+  async function simplePushExact(){
+    try{
+      status("Préparation…");
+      const payload = await captureExportPayload(1000);
+
+      if (!payload){
+        status("Échec écriture : export introuvable");
+        return;
+      }
+
+      // enrichit __meta minimal
+      try{
+        payload.__meta = payload.__meta || {};
+        payload.__meta.updatedAt = new Date().toISOString();
+        payload.__meta.by = devId();
+      }catch(_){}
+
+      const body = JSON.stringify(payload);
+      if (body.length < 2000){
+        console.warn("⚠️ Payload trop petit ("+body.length+" o) — push annulé pour éviter d’écraser.");
+        status("Échec écriture : export trop petit");
+        return;
+      }
+
+      status("Écriture… ("+body.length+" o)");
+      await jsPut(payload);
+
+      // GET de vérification
+      const back = await jsGet();
+      window.__lastPulled = back;
+      const ok = !!back && Object.keys(back).length >= 5;
+      status(ok ? "Enregistré (vérifié) ✅" : "Enregistré (à vérifier)");
+
+    }catch(e){
+      console.warn(e);
+      status("Échec écriture : " + (e.message || e));
+    }
+  }
+
+  /* ====== PULL (Recharger) ====== */
   async function simplePull(){
     try{
       status("Lecture…");
       const remote = await jsGet();
+      window.__lastPulled = remote;
       applyImported(remote);
       status("Chargé depuis JsonStorage");
     }catch(e){
@@ -3296,71 +3350,22 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     }
   }
 
-  async function simplePush(){
-    try{
-      status("Préparation…");
-      const payload = exportPayload();     // <<< lit la VRAIE data de l'export
-      const size    = JSON.stringify(payload).length;
-      console.log("[Push] taille export =", size, "octets");
-
-      // garde-fou : évite d’écraser le distant avec un objet vide
-      if (size < 2000){
-        status("Échec : export trop petit — vérifie que 'data' est rempli");
-        return;
-      }
-
-      status("Écriture…");
-      await jsPut(payload);
-
-      if (VERIFY_AFTER_PUSH){
-        const back = await jsGet();
-        const ok = !!(back && back.__meta && payload.__meta &&
-                      back.__meta.updatedAt === payload.__meta.updatedAt);
-        status(ok ? "Enregistré (vérifié) ✅" : "Enregistré (à vérifier)");
-      } else {
-        status("Enregistré sur JsonStorage ✅");
-      }
-    }catch(e){
-      console.warn(e);
-      status("Échec écriture : " + (e.message || e));
-    }
-  }
-
-  /* ====== BIND UI ====== */
+  /* ====== Bind UI ====== */
   function bindClick(id, fn){
     const el = document.getElementById(id);
     if (el && !el.__bound){ el.__bound = true; el.addEventListener("click", fn); }
     else if (!el){ console.warn("[JsonStorage] Bouton manquant :", id); }
   }
-  bindClick("btnSimplePull", simplePull);
-  bindClick("btnSimplePush", simplePush);
+  // Remappe tes boutons existants
+  bindClick("btnSimplePush", simplePushExact); // “Pousser” → capture exactement l’export et pousse
+  bindClick("btnSimplePull", simplePull);      // “Recharger” → lit et applique
 
-  /* ====== OUTILS CONSOLE (optionnel) ====== */
-  async function probeRoundTrip(){
-    const mark = "rt-" + Date.now();
-    const snap = exportPayload();
-    snap.__probe = mark;
-    const size = JSON.stringify(snap).length;
-    console.table(Object.entries({ "Taille export (octets)": size }));
-    if (size < 2000){
-      console.warn("⚠️ Export semble incomplet. Clés:", Object.keys(snap));
-      return { ok:false, reason:"small-export", size, keys:Object.keys(snap) };
-    }
-    await jsPut(snap);
-    const back = await jsGet();
-    const ok = back && back.__probe === mark;
-    console.table(Object.entries({
-      "HTTP GET OK ?": !!back,
-      "Marqueur attendu": mark,
-      "Marqueur lu": back && back.__probe,
-      "Round-trip OK ?": ok
-    }));
-    return { ok, size };
-  }
-
-  // Expose pour tests
-  window.__jsonstorage = { URI, API_KEY, simplePull, simplePush, jsGet, jsPut, exportPayload, probeRoundTrip };
+  /* ====== Expose console ====== */
+  window.__jsonstorage = {
+    URI, API_KEY, jsGet, jsPut,
+    simplePull, simplePushExact,
+    captureExportPayload
+  };
 })();
 </script>
-
 </body></html>
