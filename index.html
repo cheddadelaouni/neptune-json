@@ -3301,6 +3301,20 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     return true;
   }
 
+  // === Utiliser EXACTEMENT le même payload que "Exporter JSON" ===
+function exportPayload(){
+  // 1) forcer la synchro UI -> data comme le ferait un export
+  try { if (typeof save === 'function') save(); } catch(_){}
+
+  // 2) prendre le même objet que "Exporter JSON" stringifie
+  let obj = (typeof window.data !== 'undefined' && window.data) ? window.data : {};
+
+  // 3) cloner + marquer les métadonnées
+  try { obj = JSON.parse(JSON.stringify(obj)); } catch(_){}
+  ensureMeta(obj);
+  return obj;
+}
+
   /* ====== Actions ====== */
   async function simplePull(){
     try{
@@ -3315,35 +3329,37 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   }
 
   async function simplePush(){
-    try{
-      status('Préparation…');
-      // ⚠️ on ne dépend pas de save() pour remplir — on reconstruit un snapshot complet
-      let snapshot = buildSnapshot();
-      const size   = JSON.stringify(snapshot).length;
+  try{
+    status('Préparation…');
 
-      // garde-fou: si c’est ridiculement petit, on prévient et on n’écrase pas le distant
-      if (size < 2000 || !snapshot.rooms) {
-        console.warn('[Push annulé] Snapshot trop petit ou incomplet', { size, keys:Object.keys(snapshot) });
-        status('Échec écriture : snapshot incomplet (voir console)');
-        return;
-      }
+    // >>> on envoie EXACTEMENT ce que "Exporter JSON" écrirait
+    const payload = exportPayload();
+    const size = JSON.stringify(payload).length;
+    console.log('[Push] taille export =', size, 'octets');
 
-      status('Écriture… ('+size+' octets)');
-      await jsPut(snapshot);
-
-      if ( VERIFY_AFTER_PUSH ) {
-        const back = await jsGet();
-        const ok = !!(back && back.__meta && snapshot.__meta &&
-                      back.__meta.updatedAt === snapshot.__meta.updatedAt);
-        status(ok ? 'Enregistré (vérifié) ✅' : 'Enregistré (à vérifier)');
-      } else {
-        status('Enregistré sur JsonStorage ✅');
-      }
-    }catch(e){
-      console.warn(e);
-      status('Échec écriture : ' + (e.message || e));
+    // garde-fou pour éviter d’écraser le distant avec un export vide
+    if (size < 2000) {
+      status('Échec : export trop petit — vérifie que "data" est bien rempli (et que save() passe)');
+      return;
     }
+
+    status('Écriture…');
+    await jsPut(payload);
+
+    if (VERIFY_AFTER_PUSH){
+      const back = await jsGet();
+      const ok = !!(back && back.__meta && payload.__meta &&
+                    back.__meta.updatedAt === payload.__meta.updatedAt);
+      status(ok ? 'Enregistré (vérifié) ✅' : 'Enregistré (à vérifier)');
+    } else {
+      status('Enregistré sur JsonStorage ✅');
+    }
+  }catch(e){
+    console.warn(e);
+    status('Échec écriture : ' + (e.message || e));
   }
+}
+
 
   /* ====== Bind UI ====== */
   function bindClick(id, fn){
