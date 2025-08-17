@@ -3158,86 +3158,125 @@ $('btnExport').onclick=function(){
 
 
 
+
+
+
 <script>
 (function(){
-  /* ===== Rôle helper ===== */
+  /* ===== Helper rôle ===== */
   window.getRole = function(){
     try { return sessionStorage.getItem('neptuneRole') || (sessionStorage.getItem('neptuneAuth')==='ok' ? 'admin' : 'interne'); }
     catch(e){ return 'interne'; }
   };
 
-  /* ===== Autoriser l'accès à l’onglet Sauvegarde pour tous =====
-     (on garde "Semaine type" admin-only) */
+  /* ===== switchTab : laisser Sauvegarde à tous ; réserver Semaine type à l’Admin ===== */
   (function installSwitchTabOverride(){
     var orig = window.switchTab;
     window.switchTab = function(id, btn){
       try{
         var r = getRole();
-        // Admin requis UNIQUEMENT pour la semaine type
         if(r !== 'admin' && id === 'page-week'){
           alert('Accès réservé à l’administrateur.');
           return;
         }
       }catch(e){}
 
-      // Appel d’origine si présent, sinon fallback minimal
-      if(typeof orig === 'function'){ try{ orig(id, btn); }catch(e){} }
-      else {
+      if(typeof orig === 'function'){
+        return orig(id, btn);
+      } else {
+        // Fallback minimal si pas de switchTab d’origine
         var target = document.getElementById(id);
         if(target){
           document.querySelectorAll('section').forEach(function(s){ s.classList.add('hidden'); });
           target.classList.remove('hidden');
         }
       }
-
-      // Construire l'UI Sauvegarde si besoin, puis appliquer les verrous
-      if(id === 'page-save' && typeof buildSave === 'function'){ try{ buildSave(); }catch(e){} }
-      try{ if(typeof applyRoleLocks === 'function') applyRoleLocks(); }catch(e){}
     };
-
-    document.addEventListener('DOMContentLoaded', function(){
-      try{ if(typeof applyRoleLocks === 'function') applyRoleLocks(); }catch(e){}
-    });
   })();
 
-  /* ===== Verrou fin : "Réinitialiser" admin-only ===== */
-  window.applyRoleLocks = function(){
-    try{
-      var r = getRole();
-      var active = document.querySelector('section:not(.hidden)');
-      if(!active) return;
+  /* ===== applyRoleLocks : ne toucher qu’à “Réinitialiser” + sanity-fix Admin sur Import/Export/Pull/Push ===== */
+  (function installLocksPatch(){
+    var origLocks = window.applyRoleLocks;
 
-      if(active.id === 'page-save'){
-        var resetBtn = document.getElementById('btnReset');
-        if(resetBtn){
-          if(r !== 'admin'){
-            resetBtn.disabled = true;
-            resetBtn.style.pointerEvents = 'none';
-            resetBtn.style.opacity = '0.5';
-            resetBtn.setAttribute('aria-disabled','true');
-            resetBtn.tabIndex = -1;
-            if(!/Accès réservé/.test(resetBtn.title||'')) resetBtn.title = 'Accès réservé à l’administrateur';
-            // Garde-fou si un script tente de le réactiver
-            resetBtn.addEventListener('click', function(ev){
-              ev.preventDefault(); ev.stopImmediatePropagation();
-              alert('Accès réservé à l’administrateur.');
-              return false;
-            }, true);
-          }else{
-            // Admin : actif normal
-            resetBtn.disabled = false;
-            resetBtn.style.pointerEvents = '';
-            resetBtn.style.opacity = '';
-            resetBtn.removeAttribute('aria-disabled');
-            resetBtn.tabIndex = 0;
-            resetBtn.title = '';
-          }
+    function adminSaveTabFixes(){
+      // Active explicitement les boutons clés si Admin
+      var ids = ['btnImport','fileImport','btnExport','btnSimplePull','btnSimplePush'];
+      for(var i=0;i<ids.length;i++){
+        var el = document.getElementById(ids[i]);
+        if(el){
+          el.disabled = false;
+          el.style.opacity = '';
+          el.removeAttribute('aria-disabled');
         }
       }
-    }catch(e){}
-  };
+    }
+
+    function guardReset(){
+      var active = document.querySelector('section:not(.hidden)');
+      if(!active || active.id !== 'page-save') return;
+
+      var r = getRole();
+      var btn = document.getElementById('btnReset');
+      if(!btn) return;
+
+      // Nettoie un éventuel ancien blocage (capture) si on l’avait déjà installé
+      if(btn._resetGuard){
+        btn.removeEventListener('click', btn._resetGuard, true);
+        btn._resetGuard = null;
+      }
+
+      if(r !== 'admin'){
+        // Non-admin : on bloque
+        btn.disabled = true;
+        btn.style.pointerEvents = 'none';
+        btn.style.opacity = '0.5';
+        btn.setAttribute('aria-disabled','true');
+        btn.tabIndex = -1;
+        if(!/Accès réservé/.test(btn.title||'')) btn.title = 'Accès réservé à l’administrateur';
+        btn._resetGuard = function(ev){
+          ev.preventDefault();
+          ev.stopImmediatePropagation();
+          alert('Accès réservé à l’administrateur.');
+          return false;
+        };
+        btn.addEventListener('click', btn._resetGuard, true);
+      } else {
+        // Admin : on garantit l’activation et on retire tout blocage
+        btn.disabled = false;
+        btn.style.pointerEvents = '';
+        btn.style.opacity = '';
+        btn.removeAttribute('aria-disabled');
+        btn.tabIndex = 0;
+        if(btn.title === 'Accès réservé à l’administrateur') btn.title = '';
+      }
+    }
+
+    window.applyRoleLocks = function(){
+      if(typeof origLocks === 'function'){ try{ origLocks(); }catch(e){} }
+      try{
+        var active = document.querySelector('section:not(.hidden)');
+        if(!active) return;
+
+        if(active.id === 'page-save'){
+          // 1) Corriger le bouton Réinitialiser selon rôle
+          guardReset();
+
+          // 2) Si Admin, s’assurer que Import/Export/Pull/Push sont actifs
+          if(getRole() === 'admin'){
+            adminSaveTabFixes();
+          }
+        }
+      }catch(e){}
+    };
+
+    // Application au premier affichage
+    document.addEventListener('DOMContentLoaded', function(){
+      try{ if(typeof window.applyRoleLocks === 'function') window.applyRoleLocks(); }catch(e){}
+    });
+  })();
 })();
 </script>
+
 
   
 
