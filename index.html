@@ -3189,62 +3189,29 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   const API_KEY = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
   const URI     = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
   const withKey = (u) => u + (u.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(API_KEY);
-  const VERIFY_AFTER_PUSH   = true;   // relire après push
-  const RELOAD_AFTER_PULL   = true;   // ⚠️ recharger la page comme l'import fichier
-  const MIN_BYTES_TO_TRUST  = 2000;   // garde-fou anti-écrasement
+
+  const VERIFY_AFTER_PUSH  = true;   // relire après push
+  const RELOAD_AFTER_PULL  = false;  // ⚠️ désactivé pour éviter l’effet “reset”
+  const MIN_BYTES_TO_TRUST = 2000;   // garde-fou anti-écrasement
 
   /* ====== Utils ====== */
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-  const devId = () => {
-    try {
-      let id = localStorage.getItem("neptune-device");
-      if (!id) { id = Math.random().toString(36).slice(2) + "-" + Date.now().toString(36); localStorage.setItem("neptune-device", id); }
-      return id;
-    } catch(_) { return "console"; }
-  };
+  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
   const status = (msg) => {
     const el = document.getElementById("simpleSaveStatus") || document.getElementById("barStatus");
     if (el) el.textContent = msg + " " + new Date().toLocaleTimeString();
     console.log("[STATUS]", msg);
   };
-  const clone = (x) => JSON.parse(JSON.stringify(x));
+  const devId = () => {
+    try{
+      let id = localStorage.getItem("neptune-device");
+      if(!id){ id = Math.random().toString(36).slice(2)+"-"+Date.now().toString(36); localStorage.setItem("neptune-device", id); }
+      return id;
+    }catch(_){ return "console"; }
+  };
+  const clone  = (x) => JSON.parse(JSON.stringify(x));
   const sizeOf = (o) => { try { return JSON.stringify(o).length; } catch(_){ return 0; } };
 
-  /* ====== Hooks d'application (comme Import JSON) ====== */
-  async function applyAsIfImported(payload, { reload = RELOAD_AFTER_PULL } = {}){
-    let j = payload || {};
-
-    // 1) migrate + summarize (si exposés par ton app)
-    try { if (window.__neptuneMigrateData) j = window.__neptuneMigrateData(j); } catch(_){}
-    try { if (window.__neptuneSummarizeData) window.__neptuneSummarizeData(j); } catch(_){}
-
-    // 2) injecte dans l'état
-    try { window.data = j; } catch(_){}
-
-    // 3) save() pour persister (localStorage/HTML selon ton app)
-    try { if (typeof window.save === "function") await window.save(); } catch(_){}
-
-    // 4) refresh de l'UI, comme l'import
-    try{
-      if (typeof window.refreshActivePage === "function") window.refreshActivePage();
-      else if (typeof window.renderAccueil === "function") window.renderAccueil();
-    }catch(_){}
-
-    // 5) éventuelle sauvegarde disque si activée (parité avec import)
-    try{
-      if (window.__neptuneAutosave && typeof window.saveHtmlToDisk === "function"){
-        await window.saveHtmlToDisk();
-      }
-    }catch(_){}
-
-    // 6) rechargement total (certains écrans ne se mettent à jour qu'après reload)
-    if (reload && typeof location !== "undefined" && location.reload){
-      // petit délai pour laisser le status apparaître
-      setTimeout(() => { try { location.reload(); } catch(_){ } }, 50);
-    }
-  }
-
-  /* ====== GET/PUT JsonStorage ====== */
+  /* ====== I/O JsonStorage ====== */
   async function jsGet(){
     const r = await fetch(withKey(URI) + "&_ts=" + Date.now(), { cache:"no-store" });
     if (!r.ok) throw new Error("GET "+r.status);
@@ -3260,7 +3227,72 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     return true;
   }
 
-  /* ====== Snapshot de secours (si capture export échoue) ====== */
+  /* ====== Persistance locale (même effet que l’import JSON) ====== */
+  function persistToLocalStorageLikeImport(j){
+    // 1) fixe data/window.data ET la variable globale data si elle existe
+    try { window.data = j; } catch(_){}
+    try { /* aligne aussi la globale non-attachée à window si c’est un let/const */ data = j; } catch(_){}
+
+    // 2) tente d’écrire directement sous la même clé locale que “Réinitialiser” supprime
+    try {
+      if (typeof window.KEY === "string" && window.KEY){
+        localStorage.setItem(window.KEY, JSON.stringify(j));
+        console.log("[LOCALSTORAGE] écrit sous KEY =", window.KEY);
+      } else {
+        // Heuristique : si une clé locale ressemble à l’état Neptune, on l’écrase aussi
+        for (let i=0;i<localStorage.length;i++){
+          const k = localStorage.key(i);
+          if (!k) continue;
+          if (/neptune/i.test(k) || /data/i.test(k)) {
+            try {
+              const v = localStorage.getItem(k);
+              const parsed = JSON.parse(v||"null");
+              const looksNeptune =
+                parsed && typeof parsed==="object" &&
+                (Array.isArray(parsed.rooms) || Array.isArray(parsed.practitioners) || Array.isArray(parsed.specialties));
+              if (looksNeptune){
+                localStorage.setItem(k, JSON.stringify(j));
+                console.log("[LOCALSTORAGE] écrasé clé candidate:", k);
+              }
+            }catch(_){}
+          }
+        }
+      }
+    } catch(e){ console.warn("[LOCALSTORAGE] write failed:", e); }
+
+    // 3) save() comme l’import fichier
+    try { if (typeof window.save === "function") window.save(); } catch(_){}
+
+    // 4) refresh de l’UI
+    try{
+      if (typeof window.refreshActivePage === "function") window.refreshActivePage();
+      else if (typeof window.renderAccueil === "function") window.renderAccueil();
+    }catch(_){}
+
+    // 5) éventuelle sauvegarde disque si activée
+    try{
+      if (window.__neptuneAutosave && typeof window.saveHtmlToDisk === "function"){
+        window.saveHtmlToDisk();
+      }
+    }catch(_){}
+  }
+
+  /* ====== Pipeline “comme Import JSON” ====== */
+  async function applyAsIfImported(payload, { reload = RELOAD_AFTER_PULL } = {}){
+    let j = payload || {};
+
+    // migrate + summarize si dispo
+    try { if (window.__neptuneMigrateData) j = window.__neptuneMigrateData(j); } catch(_){}
+    try { if (window.__neptuneSummarizeData) window.__neptuneSummarizeData(j); } catch(_){}
+
+    persistToLocalStorageLikeImport(j);
+
+    if (reload && typeof location !== "undefined" && location.reload){
+      setTimeout(()=>{ try{ location.reload(); }catch(_){} }, 80);
+    }
+  }
+
+  /* ====== Fallback Snapshot (si export exact indisponible) ====== */
   function ensureMeta(o){
     try{
       o.__meta = o.__meta || {};
@@ -3270,43 +3302,33 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     return o;
   }
   function buildFallbackSnapshot(){
-    // 1) window.data « plein »
     try{
-      if (window.data && typeof window.data === "object") {
+      if (window.data && typeof window.data === "object"){
         const j = clone(window.data);
-        const big = ('rooms' in j && Array.isArray(j.rooms) && j.rooms.length) ||
-                    ('specialties' in j && Array.isArray(j.specialties) && j.specialties.length) ||
-                    ('practitioners' in j && Array.isArray(j.practitioners) && j.practitioners.length);
-        if (big) { console.log("[FALLBACK] depuis window.data"); return ensureMeta(j); }
+        const big = (Array.isArray(j.rooms) && j.rooms.length) ||
+                    (Array.isArray(j.practitioners) && j.practitioners.length) ||
+                    (Array.isArray(j.specialties) && j.specialties.length);
+        if (big){ console.log("[FALLBACK] window.data"); return ensureMeta(j); }
       }
     }catch(e){ console.warn("[FALLBACK:data]", e); }
-
-    // 2) plus gros NEPTUNE_EMBED
     try{
       const embeds = [...document.querySelectorAll('script[type="application/json"][id^="NEPTUNE_EMBED"]')];
       if (embeds.length){
         const biggest = embeds.reduce((a,b)=> (a.textContent.length >= b.textContent.length ? a : b));
         const j = JSON.parse(biggest.textContent);
-        console.log("[FALLBACK] depuis", biggest.id, "taille =", biggest.textContent.length, "octets");
+        console.log("[FALLBACK] NEPTUNE_EMBED =", biggest.id);
         return ensureMeta(j);
       }
     }catch(e){ console.warn("[FALLBACK:EMBED]", e); }
-
-    // 3) variables globales connues
     const agg = {};
     ["specialties","practitioners","interns","rooms","absences","absencesIntern","guards","guardsIntern","oncalls","overrides"]
       .forEach(k => { if (window[k] !== undefined) agg[k] = window[k]; });
-    if (Object.keys(agg).length){
-      console.log("[FALLBACK] depuis globals:", Object.keys(agg));
-      return ensureMeta(clone(agg));
-    }
-
-    // 4) minimum viable object
-    console.warn("[FALLBACK] rien de gros trouvé → objet minimal");
+    if (Object.keys(agg).length){ console.log("[FALLBACK] globals", Object.keys(agg)); return ensureMeta(clone(agg)); }
+    console.warn("[FALLBACK] minimal");
     return ensureMeta({});
   }
 
-  /* ====== Capture exacte de l’export (et blocage du download JSON) ====== */
+  /* ====== Capture exacte de l’export + blocage du download JSON ====== */
   async function captureExportPayload(timeoutMs = 2000){
     let resolved = false, restored = false;
     const origCreate = URL.createObjectURL;
@@ -3320,19 +3342,18 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     }
 
     return new Promise(async (resolve) => {
-      // Bloque UNIQUEMENT le téléchargement de blobs JSON, mais laisse le reste tourner
+      // bloque uniquement le téléchargement du .json exporté
       HTMLAnchorElement.prototype.click = function(){
         try{
           if (this && this.href && String(this.href).startsWith("blob:") &&
               ((this.download && /\.json$/i.test(this.download)) || /json/i.test(this.type || ""))) {
             console.log("[CAPTURE EXPORT] téléchargement JSON bloqué:", this.download || this.href);
-            return; // pas d'appel à l'original → pas de download
+            return;
           }
         }catch(_){}
         return origClick.apply(this, arguments);
       };
 
-      // Interception de l’URL blob pour lire le contenu
       URL.createObjectURL = function(blob){
         try{
           if (blob && blob instanceof Blob){
@@ -3354,12 +3375,10 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
         return origCreate.apply(this, arguments);
       };
 
-      // Déclenche l’export
       try { if (typeof save === "function") save(); } catch(_){}
       const btn = document.getElementById("btnExport");
       if (btn) btn.click(); else console.warn("⚠️ #btnExport introuvable — clique manuellement sur « Exporter JSON ».");
 
-      // Attente de capture
       await sleep(timeoutMs);
 
       if (!resolved){
@@ -3369,29 +3388,25 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     });
   }
 
-  /* ====== PUSH (capture exacte, sinon fallback) ====== */
+  /* ====== PUSH ====== */
   async function simplePush(){
     try{
       status("Préparation…");
-      // 1) tenter capture exacte
       let payload = await captureExportPayload(2200);
-
-      // 2) fallback si capture KO ou "trop petite"
       let size = payload ? sizeOf(payload) : 0;
+
       if (!payload || size < MIN_BYTES_TO_TRUST){
         if (!payload) console.warn("Capture export KO → fallback");
         else console.warn("Export trop petit ("+size+" o) → fallback");
         payload = buildFallbackSnapshot();
         size    = sizeOf(payload);
       }
-
       if (size < MIN_BYTES_TO_TRUST){
-        console.warn("⚠️ Snapshot encore trop petit ("+size+" o) — push annulé.");
+        console.warn("⚠️ Snapshot trop petit ("+size+" o) — push annulé.");
         status("Échec écriture : données incomplètes (voir console).");
         return;
       }
 
-      // méta
       payload.__meta = payload.__meta || {};
       payload.__meta.updatedAt = new Date().toISOString();
       payload.__meta.by = devId();
@@ -3413,21 +3428,18 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     }
   }
 
-  /* ====== PULL (rejoue exactement l’Import JSON) ====== */
+  /* ====== PULL (réinjecte comme import JSON, sans reload par défaut) ====== */
   async function simplePull(){
     try{
       status("Lecture…");
       const remote = await jsGet();
-
       const sz = sizeOf(remote);
       if (!remote || typeof remote !== "object" || sz < MIN_BYTES_TO_TRUST){
-        console.warn("PULL reçu mais parait incomplet (taille="+sz+")");
+        console.warn("PULL reçu mais semble incomplet (taille="+sz+")");
       }
 
-      // 👉 rejoue le pipeline d'import (migrate → summarize → data=j → save → refresh → autosave → reload)
       await applyAsIfImported(remote, { reload: RELOAD_AFTER_PULL });
-
-      status("Chargé depuis JsonStorage");
+      status("Chargé depuis JsonStorage (réinjecté)");
     }catch(e){
       console.warn(e);
       status("Échec lecture : " + (e.message || e));
@@ -3449,10 +3461,11 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     jsGet, jsPut,
     simplePull, simplePush,
     applyAsIfImported,
-    captureExportPayload,
-    buildFallbackSnapshot
+    buildFallbackSnapshot,
+    captureExportPayload
   };
 })();
 </script>
+
 
 </body></html>
