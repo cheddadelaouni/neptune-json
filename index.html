@@ -3173,7 +3173,11 @@ $('btnExport').onclick=function(){
 </script>
 
 
-<script>
+
+
+
+
+  <script>
 (function(){
   /* ===== Helper rôle ===== */
   window.getRole = function(){
@@ -3222,7 +3226,8 @@ $('btnExport').onclick=function(){
     };
   })();
 
-  /* ===== Verrous : droits par rôle dans l’onglet Sauvegarde ===== */
+  /* ===== Verrous : tout autoriser dans Sauvegarde sauf "Réinitialiser" (admin-only),
+                     et interdire "Pousser" aux internes (mais "Recharger" OK) ===== */
   (function(){
     var origLocks = window.applyRoleLocks;
 
@@ -3243,19 +3248,46 @@ $('btnExport').onclick=function(){
       el.tabIndex = -1;
     }
 
-    function clearResetGuard(){
-      var btn = document.getElementById('btnReset');
-      if(btn && btn._resetGuard){
-        btn.removeEventListener('click', btn._resetGuard, true);
-        btn._resetGuard = null;
-      }
+    // Détection robuste d’un bouton "push/pousser/sauvegarder/publier/upload/sync"
+    function isPushControl(el){
+      var id  = (el.id||'').toLowerCase();
+      var nm  = (el.name||'').toLowerCase();
+      var txt = (el.textContent||'').toLowerCase();
+      var on  = (el.getAttribute('onclick')||'').toLowerCase();
+      var act = (el.getAttribute('data-action')||'').toLowerCase();
+      var sig = id+' '+nm+' '+txt+' '+on+' '+act;
+      return /btnsimplepush|push|pousser|enregistrer|sauvegarder|publier|upload|sync|synchro/.test(sig);
     }
-    function setResetGuardForNonAdmin(){
-      var btn = document.getElementById('btnReset');
-      if(!btn) return;
-      clearResetGuard();
-      btn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
-      btn.addEventListener('click', btn._resetGuard, true);
+
+    // Garde-fou global capturant pour empêcher un "push" même si un script réactive le bouton
+    function installInternePushCapture(container){
+      if(container._internePushCaptureInstalled) return;
+      container.addEventListener('click', function(ev){
+        try{
+          var r = getRole();
+          if(r !== 'interne') return;
+          var el = ev.target && (ev.target.closest && ev.target.closest('button, input[type="button"], input[type="submit"], a'));
+          if(!el) return;
+          if(isPushControl(el)){
+            ev.preventDefault(); ev.stopImmediatePropagation();
+            alert('Pousser est réservé aux seniors/administrateurs.');
+          }
+        }catch(e){}
+      }, true);
+      container._internePushCaptureInstalled = true;
+
+      // Bloque aussi les submits génériques
+      container.addEventListener('submit', function(ev){
+        try{
+          var r = getRole();
+          if(r !== 'interne') return;
+          var btn = container.querySelector('button[type="submit"], input[type="submit"]');
+          if(btn && isPushControl(btn)){
+            ev.preventDefault(); ev.stopImmediatePropagation();
+            alert('Pousser est réservé aux seniors/administrateurs.');
+          }
+        }catch(e){}
+      }, true);
     }
 
     window.applyRoleLocks = function(){
@@ -3278,46 +3310,48 @@ $('btnExport').onclick=function(){
           resetBtn:  'btnReset'
         };
 
-        // (A) Tout réactiver d'abord (on repart d'un état propre)
+        // (A) Tout réactiver d'abord (état propre)
         var nodes = active.querySelectorAll('input, button, select, textarea');
-        nodes.forEach(function(el){
-          enableEl(el);
-          if(el.id === 'btnReset' && r !== 'admin'){
-            // on remettra les règles reset juste après
-          }
-        });
+        nodes.forEach(enableEl);
 
         // (B) Admin-only pour Réinitialiser
-        var btn = document.getElementById('btnReset');
-        if(btn){
-          // Retirer d’anciens garde-fous si présents
-          if(btn._resetGuard){ btn.removeEventListener('click', btn._resetGuard, true); btn._resetGuard=null; }
+        var reset = document.getElementById(ids.resetBtn);
+        if(reset){
+          if(reset._resetGuard){ reset.removeEventListener('click', reset._resetGuard, true); reset._resetGuard = null; }
           if(r !== 'admin'){
-            disableEl(btn, 'Accès réservé à l’administrateur');
-            btn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
-            btn.addEventListener('click', btn._resetGuard, true);
-          }else{
-            enableEl(btn);
+            disableEl(reset, 'Accès réservé à l’administrateur');
+            reset._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
+            reset.addEventListener('click', reset._resetGuard, true);
           }
         }
 
-        // (C) Interne : interdire **uniquement** le bouton "Pousser" (push)
+        // (C) Interne : interdire **toute action de push**
         if(r === 'interne'){
-          var push = document.getElementById(ids.pushBtn);
-          if(push){
-            // Désactiver + garde-fou anti-clic
-            disableEl(push, 'Action non autorisée (réservé Sénior/Admin)');
-            if(push._pushGuard){ push.removeEventListener('click', push._pushGuard, true); }
-            push._pushGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Pousser est réservé aux seniors/administrateurs.'); return false; };
-            push.addEventListener('click', push._pushGuard, true);
+          // 1) Bouton(s) connus par ID
+          var knownPush = document.getElementById(ids.pushBtn);
+          if(knownPush){
+            disableEl(knownPush, 'Action non autorisée (réservé Sénior/Admin)');
+            if(knownPush._pushGuard){ knownPush.removeEventListener('click', knownPush._pushGuard, true); }
+            knownPush._pushGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Pousser est réservé aux seniors/administrateurs.'); return false; };
+            knownPush.addEventListener('click', knownPush._pushGuard, true);
           }
-          // Le bouton "Recharger" (pull) reste actif
+          // 2) Heuristique : tout contrôle ressemblant à un "push"
+          var suspects = active.querySelectorAll('button, input[type="button"], input[type="submit"], a');
+          suspects.forEach(function(el){
+            if(isPushControl(el)){
+              disableEl(el, 'Action non autorisée (réservé Sénior/Admin)');
+            }
+          });
+          // 3) Capture globale (si l’UI est reconstruite ultérieurement)
+          installInternePushCapture(active);
+          // NB : le bouton "Recharger" (pull) reste actif (ids.pullBtn)
         }
 
-        // (D) Seniors : inchangé (tout OK sauf reset qui reste admin-only ci-dessus)
+        // (D) Seniors : inchangé (Import/Export/Recharger/Pousser OK ; Reset interdit ci-dessus)
         return;
       }
-      // Autres onglets : inchangés (tes droits actuels restent tels quels)
+
+      // Autres onglets : inchangés
     };
 
     // Bouton d’onglet "Sauvegarde" visible/cliquable
