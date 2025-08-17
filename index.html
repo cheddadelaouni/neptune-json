@@ -3086,34 +3086,66 @@ $('btnExport').onclick=function(){
 </script>
 
 
+
+
 <script>
 (function(){
   try{
-    var ov = document.getElementById('authOverlay');
+    var ov   = document.getElementById('authOverlay');
     var form = document.getElementById('authCard');
     var idEl = document.getElementById('authId');
     var codeEl = document.getElementById('authCode');
-    var err = document.getElementById('authErr');
+    var err  = document.getElementById('authErr');
     if(!ov || !form) return;
+
+    // Badge helper
+    function setBadge(role){
+      try{
+        var rb=document.getElementById('roleBadge');
+        if(!rb) return;
+        rb.textContent='Rôle: '+(role==='admin'?'Administrateur':(role==='senior'?'Sénior':'Interne'));
+      }catch(e){}
+    }
+
+    // Ouverture/fermeture overlay selon session
     var OK = (sessionStorage.getItem('neptuneAuth') === 'ok');
-    if(OK){ ov.style.display='none'; try{var _rb=document.getElementById('roleBadge'); if(_rb){ var _r=sessionStorage.getItem('neptuneRole')||'admin'; _rb.textContent='Rôle: '+(_r==='admin'?'Administrateur':(_r==='senior'?'Sénior':'Interne')); }}catch(e){} }
-    else { ov.style.display='flex'; }
+    if(OK){
+      ov.style.display='none';
+      setBadge(sessionStorage.getItem('neptuneRole')||'admin');
+    } else {
+      ov.style.display='flex';
+    }
+
     form.addEventListener('submit', function(e){
       e.preventDefault();
       e.stopImmediatePropagation();
-      var id = (idEl && idEl.value || '').trim();
+      var id   = (idEl && idEl.value || '').trim();
       var code = (codeEl && codeEl.value || '').trim();
+
+      // Normalisation de l'identifiant (ignore accents/majuscules)
       var low = id.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+
+      // Cartographie simple des rôles (garde tes codes actuels)
       var role = null;
       if(low === 'admin' && code === 'radiocb29!'){ role = 'admin'; }
       else if((low === 'senior' || low === 'senior.' || low === 'senior ') && code === 'radiocb29'){ role = 'senior'; }
       else if(low === 'interne' && code === 'radiocb'){ role = 'interne'; }
+
+      // (Optionnel) Support de schémas "Cavale" existants :
+      // ex. "CavaleMCEA" -> sénior ; "dupondCavale" -> interne ; mdp "MCEABrest" / "Brestdupond"
+      if(!role){
+        var mSenior = /^cavale([a-z0-9]+)$/i.exec(id);
+        var mInter  = /^([a-z0-9]+)cavale$/i.exec(id);
+        if(mSenior && code.toLowerCase() === (mSenior[1].toLowerCase()+'brest')) role='senior';
+        if(mInter  && code.toLowerCase() === ('brest'+mInter[1].toLowerCase())) role='interne';
+      }
+
       if(role){
         sessionStorage.setItem('neptuneAuth','ok');
         sessionStorage.setItem('neptuneRole', role);
         sessionStorage.setItem('neptuneUser', id);
         ov.style.display='none';
-        try{ var rb=document.getElementById('roleBadge'); if(rb) rb.textContent='Rôle: '+(role==='admin'?'Administrateur':(role==='senior'?'Sénior':'Interne')); }catch(e){}
+        setBadge(role);
       }else{
         if(err) err.textContent = 'Identifiants incorrects.';
       }
@@ -3123,20 +3155,101 @@ $('btnExport').onclick=function(){
 })();
 </script>
 
-<script>
+
+
+
+
+  
+
+
+  <script>
 (function(){
+  // ===== Helpers rôle =====
   window.getRole = function(){
     try{ return sessionStorage.getItem('neptuneRole') || (sessionStorage.getItem('neptuneAuth')==='ok' ? 'admin' : 'interne'); }
     catch(e){ return 'interne'; }
   };
+
+  // Table des permissions déclaratives
   window.can = function(action){
     var r = getRole();
     if(r === 'admin') return true;
     if(r === 'senior'){
-      return ['editAbsences','editGuards','editOncall','chooseReplacement','filters','navigate'].indexOf(action) >= 0;
+      // + droits sur Sauvegarde : pull/push + import/export
+      return ['editAbsences','editGuards','editOncall','chooseReplacement','filters','navigate',
+              'save.pull','save.push','json.import','json.export'].indexOf(action) >= 0;
     }
-    return ['filters','navigate'].indexOf(action) >= 0; // interne
+    // Interne : navigation/filtre + recharger + importer JSON
+    return ['filters','navigate','save.pull','json.import'].indexOf(action) >= 0;
   };
+
+  // ===== Correctif global : autoriser l’accès à l’onglet Sauvegarde aux non-admins,
+  // et rendre "Données" visible en lecture seule pour non-admins =====
+  (function installSwitchTabOverride(){
+    // On remplace switchTab si elle existe, pour lever tout blocage de page-save
+    var override = function(id, btn){
+      try{
+        var _role = (sessionStorage.getItem('neptuneRole') || (sessionStorage.getItem('neptuneAuth')==='ok' ? 'admin' : 'interne'));
+        // Admin requis SEULEMENT pour la semaine type (page-week). "Données" devient lisible pour non-admin.
+        if(_role !== 'admin' && (id==='page-week')){
+          alert('Accès réservé à l’administrateur.');
+          return;
+        }
+      }catch(e){}
+
+      // Affichage des sections (TABS ou fallback)
+      try{
+        if(typeof TABS!=='undefined' && typeof $==='function'){
+          for(var i=0;i<TABS.length;i++){
+            var sec=$(TABS[i][0]);
+            if(sec) sec.className = (TABS[i][0]===id? '':'hidden');
+            if(id==='page-prac'   && typeof renderPracPage==='function')   renderPracPage();
+            if(id==='page-intern' && typeof renderInternPage==='function') renderInternPage();
+          }
+          var bs=document.getElementById('tabs') ? document.getElementById('tabs').children : [];
+          for(var j=0;j<bs.length;j++){ bs[j].className = (bs[j]===btn? 'active':''); }
+        }else{
+          var target = document.getElementById(id);
+          if(target){
+            var sections = document.querySelectorAll('section');
+            for(var k=0;k<sections.length;k++){ sections[k].classList.add('hidden'); }
+            target.classList.remove('hidden');
+          }
+        }
+      }catch(e){}
+
+      // Renders spécifiques
+      try{
+        if(id==='page-acc'     && typeof renderAccueil==='function')        renderAccueil();
+        if(id==='page-cal'     && typeof renderCalendar==='function')       renderCalendar();
+        if(id==='page-absrep'  && typeof renderAbsRep==='function')         renderAbsRep();
+        if(id==='page-week'    && typeof renderWeekType==='function')       renderWeekType();
+        if(id==='page-abs')    { if(typeof renderAbs==='function') renderAbs(); if(typeof renderAbsIntern==='function') renderAbsIntern(); }
+        if(id==='page-guard')  { if(typeof renderGuards==='function') renderGuards(); if(typeof renderGuardsIntern==='function') renderGuardsIntern(); }
+        if(id==='page-oncall'  && typeof renderOncalls==='function')        renderOncalls();
+        if(id==='page-data'    && typeof renderDataPage==='function')       renderDataPage();
+        if(id==='page-stats')  { if(typeof renderStats==='function') renderStats(); if(typeof renderStatsIntern==='function') renderStatsIntern(); if(typeof initStatsAdvanced==='function') initStatsAdvanced(); }
+        // IMPORTANT : construire l’UI Sauvegarde avant les verrous
+        if(id==='page-save'    && typeof buildSave==='function')            buildSave();
+      }catch(e){}
+
+      try{ if(typeof applyRoleLocks==='function') applyRoleLocks(); }catch(e){}
+    };
+
+    // On injecte notre override de manière robuste
+    var tryInstall = function(){
+      window.switchTab = override;
+      // Applique les verrous sur la page active au démarrage
+      try{ if(typeof applyRoleLocks==='function') applyRoleLocks(); }catch(e){}
+    };
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', function(){ setTimeout(tryInstall, 0); });
+    } else {
+      setTimeout(tryInstall, 0);
+    }
+  })();
+
+  // ===== Verrous fins par page =====
   window.applyRoleLocks = function(){
     try{
       var r = getRole();
@@ -3144,16 +3257,68 @@ $('btnExport').onclick=function(){
       if(!active) return;
       if(r==='admin') return;
       var pageId = active.id || '';
-      var allowSenior = (r==='senior');
-      
-      // Always allow navigation on the per-person planning pages
-      if(pageId==='page-prac' || pageId==='page-intern'){
-        // Keep replacement UI blocked by can('chooseReplacement'); other edits are not present here.
+
+      // --- Politique spéciale de l’onglet Sauvegarde ---
+      if(pageId==='page-save'){
+        // Senior : Import, Export, Pull, Push
+        // Interne : Import, Pull uniquement
+        var allowIds = (r==='senior')
+          ? ['btnImport','fileImport','btnExport','btnSimplePull','btnSimplePush']
+          : ['btnImport','fileImport','btnSimplePull'];
+
+        var nodes = active.querySelectorAll('input, select, textarea, button');
+        for(var i=0;i<nodes.length;i++){
+          var el = nodes[i];
+          if(allowIds.indexOf(el.id)>=0){
+            el.disabled = false;
+            el.style.opacity='';
+            el.title='';
+          }else{
+            el.disabled = true;
+            el.style.opacity='0.5';
+            if(!el.title) el.title = 'Accès restreint';
+          }
+        }
+        // Admin-only pour Réinitialiser
+        var resetBtn = document.getElementById('btnReset');
+        if(resetBtn){
+          resetBtn.disabled = true;
+          resetBtn.style.pointerEvents = 'none';
+          resetBtn.style.opacity = '0.5';
+          resetBtn.setAttribute('aria-disabled','true');
+          resetBtn.tabIndex = -1;
+          if(!/Accès réservé/.test(resetBtn.title||'')) resetBtn.title = 'Accès réservé à l’administrateur';
+          // Garde-fou si un script tente de le réactiver
+          resetBtn.addEventListener('click', function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; }, true);
+        }
+        return; // ne pas appliquer les autres verrous
+      }
+
+      // --- Données : lecture seule pour non-admins (laisser filtres/onglets) ---
+      if(pageId==='page-data'){
+        var nodesD = active.querySelectorAll('input, select, textarea, button');
+        for(var d=0; d<nodesD.length; d++){
+          var elD = nodesD[d];
+          var id  = elD.id || '';
+          var inTabs = !!(elD.closest && elD.closest('#tabs'));
+          var isFilter = /^acc|^cal|^month|^year|^week|^accMode|^calMode|^accPrev|^accNext|^accYear|^accWeek|^accMonth|^calYear|^calMonth/.test(id);
+          if(inTabs || isFilter){ continue; }
+          elD.disabled = true;
+          if(!elD.title) elD.title = 'Lecture seule';
+        }
         return;
       }
-var nodes = active.querySelectorAll('input, select, textarea, button');
-      for(var i=0;i<nodes.length;i++){
-        var el = nodes[i];
+
+      // --- Navigation autorisée sur les pages planning par personne ---
+      if(pageId==='page-prac' || pageId==='page-intern'){
+        return;
+      }
+
+      // --- Reste des pages : seniors conservent certains droits (inchangé) ---
+      var allowSenior = (r==='senior');
+      var nodes = active.querySelectorAll('input, select, textarea, button');
+      for(var j=0;j<nodes.length;j++){
+        var el = nodes[j];
         var id = el.id || '';
         var inTabs = !!(el.closest && el.closest('#tabs'));
         var isFilter = /^acc|^cal|^month|^year|^week|^accMode|^calMode|^accPrev|^accNext|^accYear|^accWeek|^accMonth|^calYear|^calMonth/.test(id);
@@ -3167,6 +3332,8 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
       }
     }catch(e){}
   };
+
+  // Met à jour le badge au chargement (au cas où)
   try{
     var rb=document.getElementById('roleBadge');
     if(rb){
@@ -3176,6 +3343,9 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   }catch(e){}
 })();
 </script>
+
+  
+  
 
 
 
