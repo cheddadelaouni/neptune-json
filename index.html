@@ -3178,111 +3178,105 @@ $('btnExport').onclick=function(){
 (function(){
   var origLocks = window.applyRoleLocks;
 
+  function enableEl(el){
+    el.disabled = false;
+    el.style.opacity = '';
+    el.style.pointerEvents = '';
+    el.removeAttribute('aria-disabled');
+    if(/Lecture seule|Accès réservé/.test(el.title||'')) el.title = '';
+    el.tabIndex = 0;
+  }
+  function disableEl(el, title){
+    el.disabled = true;
+    el.style.opacity = '0.5';
+    el.style.pointerEvents = 'none';
+    el.setAttribute('aria-disabled','true');
+    if(title){ el.title = title; } else if(!el.title){ el.title = 'Lecture seule'; }
+    el.tabIndex = -1;
+  }
+  function setResetGuard(isAdmin){
+    var btn = document.getElementById('btnReset');
+    if(!btn) return;
+    if(btn._resetGuard){ btn.removeEventListener('click', btn._resetGuard, true); btn._resetGuard = null; }
+    if(!isAdmin){
+      btn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
+      btn.addEventListener('click', btn._resetGuard, true);
+    }
+  }
+  function safeRole(){ try{ return getRole(); }catch(e){ return 'interne'; } }
+
   window.applyRoleLocks = function(){
     if(typeof origLocks === 'function'){ try{ origLocks(); }catch(e){} }
 
     var active = document.querySelector('section:not(.hidden)');
     if(!active) return;
 
-    var r = (function(){ try{ return getRole(); }catch(e){ return 'interne'; } })();
+    var r = safeRole();
     var pageId = active.id || '';
 
-    // ======== Onglet Sauvegarde ========
+    /* ====== Onglet Sauvegarde ====== */
     if(pageId === 'page-save'){
-      // IDs connus
+      // ids de contrôles connus
       var ids = {
         importBtn: 'btnImport',
         fileImport:'fileImport',
         exportBtn: 'btnExport',
-        pullBtn:   'btnSimplePull',   // << Interne : seul autorisé
+        pullBtn:   'btnSimplePull',   // Interne : seul autorisé
         pushBtn:   'btnSimplePush',
         resetBtn:  'btnReset'
       };
 
-      // Politique par rôle
-      var allow = {};
+      var allow;
       if(r === 'admin'){
-        allow.ALL = true;
-      } else if(r === 'senior'){
-        allow[ids.importBtn]=true;
-        allow[ids.fileImport]=true;
-        allow[ids.exportBtn]=true;
-        allow[ids.pullBtn]=true;
-        allow[ids.pushBtn]=true;
-        // reset = admin only
-      } else { // interne
-        allow[ids.pullBtn]=true; // UNIQUEMENT Recharger
+        allow = 'ALL';
+      }else if(r === 'senior'){
+        allow = new Set([ids.importBtn, ids.fileImport, ids.exportBtn, ids.pullBtn, ids.pushBtn]);
+      }else{ // interne
+        allow = new Set([ids.pullBtn]);
       }
 
-      // Appliquer
       var nodes = active.querySelectorAll('input, button, select, textarea');
       nodes.forEach(function(el){
         var id = el.id || '';
-        if(r === 'admin' || allow.ALL || allow[id]){
-          el.disabled = false;
-          el.style.opacity = '';
-          el.style.pointerEvents = '';
-          el.removeAttribute('aria-disabled');
-          if(/Lecture seule|Accès réservé/.test(el.title||'')) el.title = '';
-          el.tabIndex = 0;
+        if(r === 'admin' || allow === 'ALL' || (allow && allow.has(id))){
+          enableEl(el);
         }else{
-          el.disabled = true;
-          el.style.opacity = '0.5';
-          el.style.pointerEvents = 'none';
-          el.setAttribute('aria-disabled','true');
-          if(id === ids.resetBtn) el.title = 'Accès réservé à l’administrateur';
-          else if(!el.title) el.title = 'Lecture seule';
-          el.tabIndex = -1;
+          disableEl(el, id===ids.resetBtn ? 'Accès réservé à l’administrateur' : 'Lecture seule');
         }
       });
 
-      // Admin-only pour Réinitialiser (garde-fou de clic)
-      var resetBtn = document.getElementById(ids.resetBtn);
-      if(resetBtn){
-        if(resetBtn._resetGuard){ resetBtn.removeEventListener('click', resetBtn._resetGuard, true); resetBtn._resetGuard = null; }
-        if(r !== 'admin'){
-          resetBtn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
-          resetBtn.addEventListener('click', resetBtn._resetGuard, true);
-        }
-      }
+      // Admin-only pour Réinitialiser
+      setResetGuard(r === 'admin');
       return;
     }
 
-    // ======== EXCEPTION demandée : Interne = accès COMPLET sur "Planning Interne" ========
+    /* ====== EXCEPTION : Planning Interne => Interne a tous les droits ====== */
     if(r === 'interne' && pageId === 'page-intern'){
-      // (Ré)active tout au cas où un autre script aurait désactivé
       var nodesPI = active.querySelectorAll('input, button, select, textarea');
-      nodesPI.forEach(function(el){
-        el.disabled = false;
-        el.style.opacity = '';
-        el.style.pointerEvents = '';
-        el.removeAttribute('aria-disabled');
-        if(/Lecture seule|Accès réservé/.test(el.title||'')) el.title = '';
-        el.tabIndex = 0;
-      });
+      nodesPI.forEach(enableEl);
       return;
     }
 
-    // ======== Autres onglets : Interne = lecture seule (laisser onglets/filtres) ========
+    /* ====== Autres onglets : Interne = lecture seule (laisser onglets/filtres) ====== */
     if(r === 'interne'){
       var nodes2 = active.querySelectorAll('input, button, select, textarea');
       nodes2.forEach(function(el){
         var inTabs = !!(el.closest && el.closest('#tabs'));
         var id = el.id || '';
         var isFilter = /^acc|^cal|^month|^year|^week|^accMode|^calMode|^accPrev|^accNext|^accYear|^accWeek|^accMonth|^calYear|^calMonth/.test(id);
-        if(inTabs || isFilter){ return; } // on laisse la navigation et les filtres
-        el.disabled = true;
-        el.style.opacity = '0.5';
-        el.style.pointerEvents = 'none';
-        el.setAttribute('aria-disabled','true');
-        if(!el.title) el.title = 'Lecture seule';
-        el.tabIndex = -1;
+        if(inTabs || isFilter) return; // navigation OK
+        disableEl(el);
       });
     }
     // Seniors/Admin : pas de restriction hors page-save
   };
+
+  document.addEventListener('DOMContentLoaded', function(){
+    try{ if(typeof window.applyRoleLocks === 'function') window.applyRoleLocks(); }catch(e){}
+  });
 })();
 </script>
+
 
 
 
