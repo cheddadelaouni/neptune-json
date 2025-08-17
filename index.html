@@ -3184,19 +3184,28 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 (() => {
   "use strict";
 
-  /* ========= CONFIG ========= */
+  /* ===== CONFIG ===== */
   const API_KEY = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
   const URI     = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
   const withKey = (u) => u + (u.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(API_KEY);
 
-  /* ========= OPTIONS ========= */
-  const RELOAD_AFTER_PULL = true;   // true = comme un Import JSON (reload après réinjection)
-  const SIZE_GUARD_BYTES  = 2000;   // garde-fou anti-écrasement
+  const RELOAD_AFTER_PULL = true;   // comme un Import JSON
+  const SIZE_GUARD_BYTES  = 2000;   // garde-fou contre snapshots minuscules
 
-  /* ========= UTILS ========= */
+  /* ===== État / util ===== */
+  let BUSY = null;                  // "push" | "pull" | null
+  let LAST_CLICK_TS = 0;
+  const DEBOUNCE_MS = 500;
+
   const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
   const now   = ()=>{ try{ return new Date().toLocaleTimeString(); }catch(_){ return ""; } };
   const jclone = (x)=> JSON.parse(JSON.stringify(x||{}));
+
+  function status(msg){
+    const el = document.getElementById("simpleSaveStatus") || document.getElementById("barStatus");
+    if (el) el.textContent = msg + (now() ? (" ("+now()+")") : "");
+    console.log("[STATUS]", msg);
+  }
   function devId(){
     try{
       let id = localStorage.getItem("neptune-device");
@@ -3204,16 +3213,24 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
       return id;
     }catch(_){ return "console"; }
   }
-  function status(msg){
-    const el = document.getElementById("simpleSaveStatus") || document.getElementById("barStatus");
-    if (el) el.textContent = msg + (now() ? (" ("+now()+")") : "");
-    console.log("[STATUS]", msg);
+
+  async function runExclusive(label, fn){
+    const t = Date.now();
+    if (BUSY) { console.warn("[LOCK] occupé par", BUSY, "→ ignore", label); return; }
+    if (t - LAST_CLICK_TS < DEBOUNCE_MS) { console.warn("[LOCK] debounce", label); return; }
+    LAST_CLICK_TS = t;
+    BUSY = label;
+    document.body && document.body.setAttribute("data-jsonstorage-busy", label);
+    try { await fn(); }
+    finally {
+      BUSY = null;
+      document.body && document.body.removeAttribute("data-jsonstorage-busy");
+    }
   }
 
-  /* ========= HOOKS APP ========= */
+  /* ===== Hooks appli ===== */
   function migrateDataIfAny(j){
     try{ if (typeof window.__neptuneMigrateData==="function") return window.__neptuneMigrateData(j); }catch(_){}
-    // Fallback minimal compatible
     const out = Object.assign({}, j||{});
     if(!Array.isArray(out.specialties)) out.specialties = out.specialties||[];
     if(!Array.isArray(out.practitioners)) out.practitioners = out.practitioners||[];
@@ -3266,7 +3283,7 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     if (ids.length) console.log("[EMBED] mis à jour :", ids.join(", "));
   }
 
-  /* ========= I/O JsonStorage ========= */
+  /* ===== I/O JsonStorage ===== */
   async function jsGet(){
     const r = await fetch(withKey(URI) + "&_ts=" + Date.now(), { cache:"no-store", headers:{ "Cache-Control":"no-cache" } });
     if (!r.ok) throw new Error("GET "+r.status);
@@ -3282,7 +3299,7 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     return true;
   }
 
-  /* ========= EXPORT CAPTURE (sans téléchargement) ========= */
+  /* ===== Capture export (sans téléchargement) ===== */
   async function captureExportPayload(timeoutMs = 1500){
     return new Promise(async (resolve) => {
       let resolved = false, restored = false;
@@ -3354,97 +3371,88 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     });
   }
 
-  /* ========= PUSH (Pousser) ========= */
-  async function simplePushExact(){
-    try{
-      status("Préparation…");
-      const payload = await captureExportPayload(1000);
-      if (!payload){ status("Échec écriture : export introuvable"); return; }
+  /* ===== Actions ===== */
+  async function doPush(){
+    status("Préparation…");
+    const payload = await captureExportPayload(1000);
+    if (!payload){ status("Échec écriture : export introuvable"); return; }
 
+    try{
+      payload.__meta = payload.__meta || {};
+      payload.__meta.updatedAt = new Date().toISOString();
+      payload.__meta.by = devId();
+    }catch(_){}
+
+    const body = JSON.stringify(payload);
+    if (body.length < SIZE_GUARD_BYTES){
+      console.warn("⚠️ Payload trop petit ("+body.length+" o) — push annulé.");
+      status("Échec écriture : export trop petit");
+      return;
+    }
+
+    status("Écriture… ("+body.length+" o)");
+    await jsPut(payload);
+
+    const back = await jsGet();
+    window.__lastPulled = back;
+    const ok = !!back && Object.keys(back).length >= 5;
+    status(ok ? "Enregistré (vérifié) ✅" : "Enregistré (à vérifier)");
+  }
+
+  async function doPull(){
+    status("Lecture…");
+    const remote = await jsGet();
+    const j = migrateDataIfAny(jclone(remote));
+    summarizeIfAny(j);
+    persistToLocalStorageViaApp(j);
+    updateAllEmbeds(j);
+    callHydrators();
+    status("Chargé depuis JsonStorage (réinjecté)");
+    if (RELOAD_AFTER_PULL){
+      console.log("[PULL] Reload style Import JSON dans 120ms…");
+      setTimeout(()=>{ try{ location.reload(); }catch(_){ } }, 120);
+    }
+  }
+
+  /* ===== Bind strict sur 2 IDs ===== */
+  function bindOne(id, label, action){
+    const el = document.getElementById(id);
+    if (!el) { console.warn("[WIRE] bouton introuvable:", id); return; }
+
+    // Purge tous anciens handlers (en recréant le noeud)
+    const clone = el.cloneNode(true);
+
+    // Capture & bubble → on stoppe toute propagation
+    const handler = (ev)=>{
       try{
-        payload.__meta = payload.__meta || {};
-        payload.__meta.updatedAt = new Date().toISOString();
-        payload.__meta.by = devId();
+        ev.preventDefault(); ev.stopPropagation(); 
+        if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
       }catch(_){}
+      runExclusive(label, action);
+    };
 
-      const body = JSON.stringify(payload);
-      if (body.length < SIZE_GUARD_BYTES){
-        console.warn("⚠️ Payload trop petit ("+body.length+" o) — push annulé.");
-        status("Échec écriture : export trop petit");
-        return;
-      }
+    clone.addEventListener("click", handler, {capture:true});
+    clone.addEventListener("click", handler, {capture:false});
 
-      status("Écriture… ("+body.length+" o)");
-      await jsPut(payload);
-
-      const back = await jsGet();
-      window.__lastPulled = back;
-      const ok = !!back && Object.keys(back).length >= 5;
-      status(ok ? "Enregistré (vérifié) ✅" : "Enregistré (à vérifier)");
-    }catch(e){
-      console.warn(e);
-      status("Échec écriture : " + (e.message || e));
-    }
+    el.replaceWith(clone);
+    console.log("[WIRE]", label, "→ #"+id);
   }
 
-  /* ========= PULL (Recharger) ========= */
-  async function simplePull(){
-    try{
-      status("Lecture…");
-      const remote = await jsGet();
-      const j = migrateDataIfAny(jclone(remote));
-      summarizeIfAny(j);
-      persistToLocalStorageViaApp(j);
-      updateAllEmbeds(j);
-      callHydrators();
-      status("Chargé depuis JsonStorage (réinjecté)");
-      if (RELOAD_AFTER_PULL){
-        console.log("[PULL] Reload style Import JSON dans 100ms…");
-        setTimeout(()=>{ try{ location.reload(); }catch(_){ } }, 100);
-      }
-    }catch(e){
-      console.warn(e);
-      status("Échec lecture : " + (e.message || e));
-    }
+  function rebind(){
+    bindOne("btnSimplePull", "pull", doPull);
+    bindOne("btnSimplePush", "push", doPush);
   }
 
-  /* ========= (RE)BIND ROBUSTE DES DEUX BOUTONS ========= */
-  const PULL_IDS = ["btnSimplePull","btnRecharger","btnLoadCloud","btnReload","btnSync","btnImportCloud"];
-  const PUSH_IDS = ["btnSimplePush","btnPush","btnSaveCloud","btnExportCloud"];
-
-  function wireOne(idList, handler, label){
-    let wired = 0;
-    idList.forEach(id=>{
-      const el = document.getElementById(id);
-      if (!el) return;
-      // Remplace le noeud pour purger d’anciens handlers
-      const clone = el.cloneNode(true);
-      clone.addEventListener("click", (ev)=>{ try{ ev.preventDefault(); ev.stopPropagation(); }catch(_){ } handler(); });
-      el.replaceWith(clone);
-      console.log("[WIRE]", label, "→ #"+id);
-      wired++;
-    });
-    return wired;
-  }
-
-  function rebindAll(){
-    const p1 = wireOne(PULL_IDS, simplePull,  "Recharger");
-    const p2 = wireOne(PUSH_IDS, simplePushExact, "Pousser");
-    if (!p1 && !p2) console.warn("[WIRE] aucun bouton trouvé (pull/push).");
-  }
-
-  // Bind immédiat + retries + MutationObserver (si l’app remonte le DOM)
-  rebindAll();
-  setTimeout(rebindAll, 300);
-  setTimeout(rebindAll, 1000);
-  try{
-    const mo = new MutationObserver(() => { rebindAll(); });
-    mo.observe(document.body, { childList:true, subtree:true });
-  }catch(_){}
+  // Bind initial + re-essai discret si l’app reconstruit ces 2 boutons
+  rebind();
+  setTimeout(rebind, 400);
+  setTimeout(rebind, 1200);
 
   // Expose console
   window.__jsonstorage = Object.assign(window.__jsonstorage||{}, {
-    simplePull, simplePushExact, jsGet, jsPut, captureExportPayload
+    push: ()=>runExclusive("push", doPush),
+    pull: ()=>runExclusive("pull", doPull),
+    jsGet, jsPut, captureExportPayload
   });
 })();
 </script>
