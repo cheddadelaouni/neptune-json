@@ -3184,20 +3184,28 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 (() => {
   "use strict";
 
-  /* ====== CONFIG JSONSTORAGE (reprend les mêmes) ====== */
+  /* ========= CONFIG ========= */
   const API_KEY = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
   const URI     = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
-  const withKey = (u) => u + (u.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(API_KEY);
-  const VERIFY_AFTER_PUSH = true;
+  const VERIFY_AFTER_PUSH  = true;     // relit après PUT pour vérifier
+  const RELOAD_AFTER_PULL  = true;     // reproduit le comportement de l’import JSON (reload)
+  const WRITE_LOCALSTORAGE = true;     // écrit aussi dans plusieurs clés de LS
+  const UPDATE_EMBED       = true;     // remplace le contenu de <script id="NEPTUNE_EMBED">
 
-  /* ====== UTIL ====== */
+  const withKey = (u) => u + (u.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(API_KEY);
   const now = () => { try { return new Date().toLocaleTimeString(); } catch(_) { return ""; } };
   function status(msg){
     const el = document.getElementById("simpleSaveStatus") || document.getElementById("barStatus");
-    if (el) el.textContent = msg + (now() ? (" ("+now()+")") : "");
+    if (el) el.textContent = msg + (now()?(" ("+now()+")"):"");
     console.log("[STATUS]", msg);
   }
-  const clone = (x) => JSON.parse(JSON.stringify(x||{}));
+
+  // Restaure un éventuel shim d’export encore actif
+  try {
+    if (window.__origCreateObjectURL) URL.createObjectURL = window.__origCreateObjectURL;
+  } catch(_) {}
+
+  const jclone = (x)=> JSON.parse(JSON.stringify(x||{}));
   function devId(){
     try{
       let id = localStorage.getItem("neptune-device");
@@ -3208,16 +3216,14 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
   function ensureMeta(obj){
     try{
       if (!obj.__meta) obj.__meta = {};
-      obj.__meta.updatedAt = new Date().toISOString();
-      obj.__meta.by        = devId();
+      if (!obj.__meta.updatedAt) obj.__meta.updatedAt = new Date().toISOString();
+      if (!obj.__meta.by)        obj.__meta.by = devId();
     }catch(_){}
   }
 
-  /* ====== RECONSTRUCTION DU SNAPSHOT ====== */
+  /* ========= MIGRATION / RÉSUMÉ ========= */
   function migrateData(j){
-    // essaie le migrateur de l’app si dispo
     try{ if (typeof window.__neptuneMigrateData === "function") return window.__neptuneMigrateData(j); }catch(_){}
-    // fallback compatible minimal
     const out = Object.assign({}, j||{});
     if(!Array.isArray(out.specialties)) out.specialties = out.specialties || [];
     if(!Array.isArray(out.practitioners)) out.practitioners = out.practitioners || [];
@@ -3231,60 +3237,31 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     if(typeof out.overrides!=="object" || !out.overrides) out.overrides = {};
     return out;
   }
-
-  function buildSnapshot(){
-    // 1) exporteurs “officiels” si présents
-    const extractors = ["__neptuneExtract","extractData","getExportData","exportJSON","toJSON"];
-    for (const fn of extractors) {
-      try{
-        if (typeof window[fn] === "function") {
-          const out = window[fn]();
-          if (out && typeof out === "object") {
-            const j = migrateData(clone(out));
-            ensureMeta(j);
-            console.log("[SNAPSHOT] via", fn, "· clés:", Object.keys(j));
-            return j;
-          }
-        }
-      }catch(e){ console.warn("[SNAPSHOT:"+fn+"]", e); }
-    }
-    // 2) window.data complet ?
+  function summarizeData(d){
     try{
-      if (window.data && typeof window.data === "object") {
-        const j = migrateData(clone(window.data));
-        const looksBig =
-          (Array.isArray(j.rooms) && j.rooms.length) ||
-          (Array.isArray(j.specialties) && j.specialties.length) ||
-          (Array.isArray(j.practitioners) && j.practitioners.length) ||
-          j.absences || j.absencesIntern;
-        if (looksBig) {
-          ensureMeta(j);
-          console.log("[SNAPSHOT] via window.data · clés:", Object.keys(j));
-          return j;
-        }
-      }
-    }catch(e){ console.warn("[SNAPSHOT:data]", e); }
-
-    // 3) agrège les globals connues
-    const agg = {};
-    ["specialties","practitioners","interns","rooms","absences","absencesIntern","guards","guardsIntern","oncalls","overrides"].forEach(k=>{
-      if (window[k] !== undefined) agg[k] = window[k];
-    });
-    if (Object.keys(agg).length) {
-      const j = migrateData(clone(agg));
-      ensureMeta(j);
-      console.log("[SNAPSHOT] via globals · clés:", Object.keys(j));
-      return j;
-    }
-
-    // 4) fallback vide mais valide
-    const j = migrateData({});
-    ensureMeta(j);
-    console.warn("[SNAPSHOT] fallback vide");
-    return j;
+      const s = [
+        "Spécialités: "+(d.specialties?d.specialties.length:0),
+        "Praticiens: "+(d.practitioners?d.practitioners.length:0),
+        "Internes: "+(d.interns?d.interns.length:0),
+        "Salles: "+(d.rooms?d.rooms.length:0),
+        "Absences (semaines): "+(d.absences?Object.keys(d.absences).length:0),
+        "Absences internes (semaines): "+(d.absencesIntern?Object.keys(d.absencesIntern).length:0),
+        "Gardes (semaines): "+(d.guards?Object.keys(d.guards).length:0),
+        "Gardes internes (semaines): "+(d.guardsIntern?Object.keys(d.guardsIntern).length:0),
+        "Astreintes (semaines): "+(d.oncalls?Object.keys(d.oncalls).length:0)
+      ].join(" · ");
+      const hint = document.getElementById("saveHint") || document.getElementById("simpleSaveStatus");
+      if (hint) hint.textContent = "Import: " + s;
+      console.log("[IMPORT] " + s);
+    }catch(_){}
   }
 
-  /* ====== I/O JSONSTORAGE ====== */
+  /* ========= I/O JSONSTORAGE ========= */
+  async function jsGet(){
+    const r = await fetch(withKey(URI)+"&_ts="+Date.now(), { cache:"no-store" });
+    if (!r.ok) throw new Error("GET "+r.status);
+    return r.json();
+  }
   async function jsPut(obj){
     const body = JSON.stringify(obj ?? {});
     const r = await fetch(withKey(URI), {
@@ -3299,20 +3276,117 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     }
     return true;
   }
-  async function jsGet(){
-    const r = await fetch(withKey(URI)+"&_ts="+Date.now(), { cache:"no-store" });
-    if (!r.ok) throw new Error("GET "+r.status);
-    return r.json();
+
+  /* ========= APPLICATION DES DONNÉES (comme un import JSON) ========= */
+  function applyImported(j){
+    j = migrateData(j||{});
+    ensureMeta(j);
+
+    // 1) place dans window.data et sauvegarde
+    try { window.data = j; } catch(_){}
+    try { if (typeof window.save === "function") window.save(); } catch(_){}
+
+    // 2) rafraîchit l’UI (comme l’import)
+    try{
+      if (typeof window.refreshActivePage === "function") window.refreshActivePage();
+      else if (typeof window.renderAccueil === "function") window.renderAccueil();
+    }catch(_){}
+
+    // 3) écrit dans localStorage (plusieurs clés possibles)
+    if (WRITE_LOCALSTORAGE){
+      try{
+        const payload = JSON.stringify(j);
+        const candidates = [
+          // clés potentielles propres à l’app
+          (typeof window.KEY!=="undefined" ? window.KEY : null),
+          (typeof window.SAVE_KEY!=="undefined" ? window.SAVE_KEY : null),
+          (typeof window.STORAGE_KEY!=="undefined" ? window.STORAGE_KEY : null),
+          // suffixes historiques
+          "neptune-v5","NEPTUNE_DATA","neptune-data","neptune","NEPTUNE_STATE"
+        ].filter(Boolean);
+        candidates.forEach(k=>{
+          localStorage.setItem(k, payload);
+          console.log("[LOCALSTORAGE] écrit →", k);
+        });
+      }catch(e){ console.warn("[LOCALSTORAGE]", e); }
+    }
+
+    // 4) remplace l’EMBED si présent
+    if (UPDATE_EMBED){
+      try{
+        const tag = document.getElementById("NEPTUNE_EMBED");
+        if (tag && tag.tagName === "SCRIPT"){
+          tag.textContent = JSON.stringify(j);
+          console.log("[EMBED] mis à jour dans NEPTUNE_EMBED · taille =", tag.textContent.length, "o");
+        }
+      }catch(e){ console.warn("[EMBED]", e); }
+    }
+
+    // 5) comportement “import JSON” : reload si souhaité
+    if (RELOAD_AFTER_PULL){
+      try { location.reload(); return; } catch(_){}
+    }
+
+    // sinon on résume à l’écran
+    summarizeData(j);
   }
 
-  /* ====== ACTION: PUSH ====== */
+  /* ========= BUILD SNAPSHOT (pour Pousser) ========= */
+  function buildSnapshot(){
+    const extractors = ["__neptuneExtract","extractData","getExportData","exportJSON","toJSON"];
+    for (const fn of extractors) {
+      try{
+        if (typeof window[fn] === "function") {
+          const out = window[fn]();
+          if (out && typeof out === "object") {
+            const j = migrateData(jclone(out));
+            ensureMeta(j);
+            console.log("[SNAPSHOT] via", fn);
+            return j;
+          }
+        }
+      }catch(e){ console.warn("[SNAPSHOT:"+fn+"]", e); }
+    }
+    try{
+      if (window.data && typeof window.data === "object") {
+        const j = migrateData(jclone(window.data));
+        ensureMeta(j);
+        console.log("[SNAPSHOT] via window.data");
+        return j;
+      }
+    }catch(e){ console.warn("[SNAPSHOT:data]", e); }
+
+    const agg = {};
+    ["specialties","practitioners","interns","rooms","absences","absencesIntern","guards","guardsIntern","oncalls","overrides"].forEach(k=>{
+      if (window[k] !== undefined) agg[k] = window[k];
+    });
+    const j = migrateData(agg);
+    ensureMeta(j);
+    console.warn("[SNAPSHOT] via globals (fallback)");
+    return j;
+  }
+
+  /* ========= ACTIONS ========= */
+  async function simplePull(){
+    try{
+      status("Lecture…");
+      const remote = await jsGet();
+      summarizeData(remote);
+      applyImported(remote); // fera éventuellement reload
+      status("Chargé depuis JsonStorage (réinjecté)");
+    }catch(e){
+      console.warn(e);
+      status("Échec lecture : " + (e.message || e));
+    }
+  }
+
   async function simplePush(){
     try{
       status("Préparation…");
       const snap = buildSnapshot();
+      ensureMeta(snap);
       const size = JSON.stringify(snap).length;
 
-      // garde-fou
       if (size < 2000 || !Array.isArray(snap.rooms)) {
         console.warn("[PUSH annulé] snapshot trop petit/incomplet", { size, keys:Object.keys(snap) });
         status("Échec écriture : snapshot incomplet (voir console)");
@@ -3322,14 +3396,14 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
       status("Écriture… ("+size+" octets)");
       await jsPut(snap);
 
-      if (VERIFY_AFTER_PUSH) {
+      if (VERIFY_AFTER_PUSH){
         const back = await jsGet();
         const same = !!(back && back.__meta && snap.__meta && back.__meta.updatedAt === snap.__meta.updatedAt);
         status(same ? "Enregistré (vérifié) ✅" : "Enregistré (à vérifier)");
         console.table({
           "size envoyé": size,
           "updatedAt envoyé": snap.__meta && snap.__meta.updatedAt,
-          "updatedAt lu": back.__meta && back.__meta.updatedAt,
+          "updatedAt lu": back && back.__meta && back.__meta.updatedAt,
           "vérif": same
         });
       } else {
@@ -3341,33 +3415,47 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     }
   }
 
-  /* ====== (RE)BIND ROBUSTE DU BOUTON ====== */
-  function hardBindPush(ids, handler){
-    let bound = false;
-    ids.forEach(id=>{
+  /* ========= (RE)BIND ROBUSTE DES BOUTONS ========= */
+  function rebindClickOnce(idList, handler, label){
+    let ok = false;
+    idList.forEach(id=>{
       const el = document.getElementById(id);
       if (!el) return;
-      // on remplace le noeud par un clone pour purger d’anciens écouteurs
-      const clone = el.cloneNode(true);
-      clone.__bound = true;
+      const clone = el.cloneNode(true); // purge anciens listeners
       clone.addEventListener("click", (ev)=>{
         try{ ev.preventDefault(); ev.stopPropagation(); }catch(_){}
         handler();
       }, { passive:false });
       el.replaceWith(clone);
-      console.log("[PUSH] relié sur #"+id);
-      bound = true;
+      console.log(`[WIRE] ${label} → #${id}`);
+      ok = true;
     });
-    if (!bound) console.warn("[PUSH] bouton introuvable (cherché:", ids.join(", "), ")");
+    if (!ok) console.warn(`[WIRE] aucun bouton trouvé pour ${label} (cherché: ${idList.join(", ")})`);
+    return ok;
   }
 
-  hardBindPush(["btnSimplePush","btnPush","btnSaveCloud"], simplePush);
+  function wireAll(){
+    const pullIds = ["btnSimplePull","btnPull","btnRecharger","btnReloadCloud"];
+    const pushIds = ["btnSimplePush","btnPush","btnPousser","btnSaveCloud"];
+    const a = rebindClickOnce(pullIds, simplePull, "Recharge");
+    const b = rebindClickOnce(pushIds, simplePush, "Pousser");
+    return a || b;
+  }
 
-  // Expose en console
-  window.__jsonstorage = Object.assign(window.__jsonstorage||{}, { simplePush });
+  // Essaye tout de suite puis réessaie un court instant si les boutons arrivent tard
+  if (!wireAll()){
+    setTimeout(wireAll, 300);
+    setTimeout(wireAll, 1000);
+  }
+
+  // Expose en console au cas où
+  window.__jsonstorage = Object.assign(window.__jsonstorage||{}, {
+    simplePull, simplePush, wireAll
+  });
 
 })();
 </script>
+
 
 
 
