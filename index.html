@@ -3182,7 +3182,14 @@ $('btnExport').onclick=function(){
 (function(){
   var origLocks = window.applyRoleLocks;
 
-  function safeRole(){ try{ return getRole(); }catch(e){ return 'interne'; } }
+  // ✅ Récupère le rôle directement depuis sessionStorage (sans dépendre d'un getRole externe)
+  function currentRole(){
+    try{
+      var r = sessionStorage.getItem('neptuneRole');
+      if(r) return r;
+      return (sessionStorage.getItem('neptuneAuth') === 'ok' ? 'admin' : 'interne');
+    }catch(e){ return 'interne'; }
+  }
   function qsaActive(sel){
     var active = document.querySelector('section:not(.hidden)');
     return active ? Array.from(active.querySelectorAll(sel)) : [];
@@ -3225,7 +3232,7 @@ $('btnExport').onclick=function(){
     var active = document.querySelector('section:not(.hidden)');
     if(!active) return;
 
-    var r = safeRole();
+    var r = currentRole();
     var pageId = active.id || '';
 
     /* ===== ADMIN : accès complet partout ===== */
@@ -3302,17 +3309,6 @@ $('btnExport').onclick=function(){
 </script>
 
 
-
-
-
-
-
-  
-
-
-
-  
-  
 
 
 
