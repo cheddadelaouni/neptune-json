@@ -3184,14 +3184,11 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 (() => {
   "use strict";
 
-  /* ====== CONFIG JSONSTORAGE ====== */
+  /* ====== CONFIG JSONSTORAGE (reprend les mêmes) ====== */
   const API_KEY = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
   const URI     = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
   const withKey = (u) => u + (u.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(API_KEY);
-
-  /* ====== OPTIONS ====== */
-  // true = on refait EXACTEMENT le flux d'un import fichier: save() + (ré)hydrate + reload
-  const RELOAD_AFTER_PULL = true;
+  const VERIFY_AFTER_PUSH = true;
 
   /* ====== UTIL ====== */
   const now = () => { try { return new Date().toLocaleTimeString(); } catch(_) { return ""; } };
@@ -3200,160 +3197,178 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     if (el) el.textContent = msg + (now() ? (" ("+now()+")") : "");
     console.log("[STATUS]", msg);
   }
-  const clone = (x) => JSON.parse(JSON.stringify(x || {}));
-
-  function migrateDataIfAny(j){
-    try {
-      if (typeof window.__neptuneMigrateData === "function") return window.__neptuneMigrateData(j);
-    } catch(e) { console.warn("[MIGRATE] KO:", e); }
-    // Fallback minimal compatible
+  const clone = (x) => JSON.parse(JSON.stringify(x||{}));
+  function devId(){
     try{
-      const out = Object.assign({}, j||{});
-      if(!Array.isArray(out.specialties)) out.specialties = out.specialties || [];
-      if(!Array.isArray(out.practitioners)) out.practitioners = out.practitioners || [];
-      if(!Array.isArray(out.interns)) out.interns = out.interns || [];
-      if(!Array.isArray(out.rooms)) out.rooms = out.rooms || [];
-      if(typeof out.absences!=="object" || !out.absences) out.absences = {};
-      if(typeof out.absencesIntern!=="object" || !out.absencesIntern) out.absencesIntern = {};
-      if(typeof out.guards!=="object" || !out.guards) out.guards = {};
-      if(typeof out.guardsIntern!=="object" || !out.guardsIntern) out.guardsIntern = {};
-      if(typeof out.oncalls!=="object" || !out.oncalls) out.oncalls = {};
-      if(typeof out.overrides!=="object" || !out.overrides) out.overrides = {};
-      return out;
-    }catch(e){ return j; }
+      let id = localStorage.getItem("neptune-device");
+      if(!id){ id = Math.random().toString(36).slice(2)+"-"+Date.now().toString(36); localStorage.setItem("neptune-device", id); }
+      return id;
+    }catch(_){ return "console"; }
   }
-
-  function summarizeIfAny(d){
-    try { if (typeof window.__neptuneSummarizeData === "function") window.__neptuneSummarizeData(d); } catch(_){}
-  }
-
-  function propagateSplitGlobals(d){
+  function ensureMeta(obj){
     try{
-      window.specialties    = d.specialties || [];
-      window.practitioners  = d.practitioners || [];
-      window.interns        = d.interns || [];
-      window.rooms          = d.rooms || [];
-      window.absences       = d.absences || {};
-      window.absencesIntern = d.absencesIntern || {};
-      window.guards         = d.guards || {};
-      window.guardsIntern   = d.guardsIntern || {};
-      window.oncalls        = d.oncalls || {};
-      window.overrides      = d.overrides || {};
-    }catch(e){ console.warn("[PROPAGATE] KO:", e); }
+      if (!obj.__meta) obj.__meta = {};
+      obj.__meta.updatedAt = new Date().toISOString();
+      obj.__meta.by        = devId();
+    }catch(_){}
   }
 
-  function updateAllEmbeds(j){
-    const ids = [];
-    try{
-      const embeds = document.querySelectorAll('script[type="application/json"][id^="NEPTUNE_EMBED"]');
-      embeds.forEach(el => {
-        try{
-          el.textContent = JSON.stringify(j);
-          ids.push(el.id);
-        }catch(e){
-          console.warn("[EMBED] update KO pour", el.id, e);
-        }
-      });
-      console.log("[EMBED] MAJ :", ids.length ? ids.join(", ") : "aucun");
-    }catch(e){
-      console.warn("[EMBED] updateAllEmbeds KO:", e);
-    }
-    return ids;
+  /* ====== RECONSTRUCTION DU SNAPSHOT ====== */
+  function migrateData(j){
+    // essaie le migrateur de l’app si dispo
+    try{ if (typeof window.__neptuneMigrateData === "function") return window.__neptuneMigrateData(j); }catch(_){}
+    // fallback compatible minimal
+    const out = Object.assign({}, j||{});
+    if(!Array.isArray(out.specialties)) out.specialties = out.specialties || [];
+    if(!Array.isArray(out.practitioners)) out.practitioners = out.practitioners || [];
+    if(!Array.isArray(out.interns)) out.interns = out.interns || [];
+    if(!Array.isArray(out.rooms)) out.rooms = out.rooms || [];
+    if(typeof out.absences!=="object" || !out.absences) out.absences = {};
+    if(typeof out.absencesIntern!=="object" || !out.absencesIntern) out.absencesIntern = {};
+    if(typeof out.guards!=="object" || !out.guards) out.guards = {};
+    if(typeof out.guardsIntern!=="object" || !out.guardsIntern) out.guardsIntern = {};
+    if(typeof out.oncalls!=="object" || !out.oncalls) out.oncalls = {};
+    if(typeof out.overrides!=="object" || !out.overrides) out.overrides = {};
+    return out;
   }
 
-  // écrit via save() (clé officielle de l’app) + en miroir sur quelques clés usuelles (sécurité)
-  function persistToLocalStorageViaApp(d){
-    let wrote = [];
-    try {
-      // 1) remplit les globals attendues
-      propagateSplitGlobals(d);
-
-      // 2) set data + save() de l’app (IMPORTANT: c’est ça qui écrit sous la bonne clé)
-      try { window.data = d; } catch(_){}
-      try { if (typeof window.save === "function") { window.save(); wrote.push("save()"); } } catch(e){ console.warn("[SAVE] KO:", e); }
-
-      // 3) miroirs de compat (au cas où certaines vues lisent directement LS)
-      const mirrors = ["neptune-v5","NEPTUNE_DATA","neptune-data","neptune","NEPTUNE_STATE"];
+  function buildSnapshot(){
+    // 1) exporteurs “officiels” si présents
+    const extractors = ["__neptuneExtract","extractData","getExportData","exportJSON","toJSON"];
+    for (const fn of extractors) {
       try{
-        mirrors.forEach(k=>{
-          try { localStorage.setItem(k, JSON.stringify(d)); wrote.push(k); } catch(_){}
-        });
-      }catch(_){}
-    } catch(e) {
-      console.warn("[PERSIST] KO:", e);
+        if (typeof window[fn] === "function") {
+          const out = window[fn]();
+          if (out && typeof out === "object") {
+            const j = migrateData(clone(out));
+            ensureMeta(j);
+            console.log("[SNAPSHOT] via", fn, "· clés:", Object.keys(j));
+            return j;
+          }
+        }
+      }catch(e){ console.warn("[SNAPSHOT:"+fn+"]", e); }
     }
-    console.log("[LOCALSTORAGE] écrit →", wrote.join(", ") || "rien");
-  }
+    // 2) window.data complet ?
+    try{
+      if (window.data && typeof window.data === "object") {
+        const j = migrateData(clone(window.data));
+        const looksBig =
+          (Array.isArray(j.rooms) && j.rooms.length) ||
+          (Array.isArray(j.specialties) && j.specialties.length) ||
+          (Array.isArray(j.practitioners) && j.practitioners.length) ||
+          j.absences || j.absencesIntern;
+        if (looksBig) {
+          ensureMeta(j);
+          console.log("[SNAPSHOT] via window.data · clés:", Object.keys(j));
+          return j;
+        }
+      }
+    }catch(e){ console.warn("[SNAPSHOT:data]", e); }
 
-  function callHydrators(){
-    // Essaie tous les initialiseurs connus
-    ["load","loadData","hydrate","hydrateData","reloadData","init","initialize","bootstrap","refreshActivePage","renderAccueil"].forEach(fn=>{
-      try { if (typeof window[fn] === "function") window[fn](); } catch(e){ console.warn("[HYDRATE] appel", fn, "KO:", e); }
+    // 3) agrège les globals connues
+    const agg = {};
+    ["specialties","practitioners","interns","rooms","absences","absencesIntern","guards","guardsIntern","oncalls","overrides"].forEach(k=>{
+      if (window[k] !== undefined) agg[k] = window[k];
     });
-    // Event custom
-    try { window.dispatchEvent(new CustomEvent("neptune:data-updated")); } catch(_){}
+    if (Object.keys(agg).length) {
+      const j = migrateData(clone(agg));
+      ensureMeta(j);
+      console.log("[SNAPSHOT] via globals · clés:", Object.keys(j));
+      return j;
+    }
+
+    // 4) fallback vide mais valide
+    const j = migrateData({});
+    ensureMeta(j);
+    console.warn("[SNAPSHOT] fallback vide");
+    return j;
   }
 
+  /* ====== I/O JSONSTORAGE ====== */
+  async function jsPut(obj){
+    const body = JSON.stringify(obj ?? {});
+    const r = await fetch(withKey(URI), {
+      method: "PUT",
+      headers: { "Content-Type":"application/json" },
+      body,
+      cache: "no-store"
+    });
+    if (!r.ok) {
+      const t = await r.text().catch(()=> "");
+      throw new Error("PUT "+r.status+" — "+t.slice(0,200));
+    }
+    return true;
+  }
   async function jsGet(){
-    const url = withKey(URI) + "&_ts=" + Date.now();
-    const r = await fetch(url, { method:"GET", cache:"no-store", headers:{ "Cache-Control":"no-cache" } });
+    const r = await fetch(withKey(URI)+"&_ts="+Date.now(), { cache:"no-store" });
     if (!r.ok) throw new Error("GET "+r.status);
     return r.json();
   }
 
-  async function importStylePull(){
+  /* ====== ACTION: PUSH ====== */
+  async function simplePush(){
     try{
-      status("Lecture…");
-      const remote = await jsGet();
-      const j = migrateDataIfAny(clone(remote));
+      status("Préparation…");
+      const snap = buildSnapshot();
+      const size = JSON.stringify(snap).length;
 
-      // résumé visuel (comme l'import)
-      summarizeIfAny(j);
-
-      // persist (clé officielle via save() + miroirs)
-      persistToLocalStorageViaApp(j);
-
-      // mets à jour tous les EMBEDs pour que le HTML reflète l’état courant
-      const embeds = updateAllEmbeds(j);
-      if (embeds.length){
-        console.log("[PULL] EMBED mis à jour :", embeds);
+      // garde-fou
+      if (size < 2000 || !Array.isArray(snap.rooms)) {
+        console.warn("[PUSH annulé] snapshot trop petit/incomplet", { size, keys:Object.keys(snap) });
+        status("Échec écriture : snapshot incomplet (voir console)");
+        return;
       }
 
-      // (re)hydratation immédiate
-      callHydrators();
+      status("Écriture… ("+size+" octets)");
+      await jsPut(snap);
 
-      status("Chargé depuis JsonStorage (réinjecté)");
-      console.table({
-        "Spécialités": j.specialties?.length || 0,
-        "Praticiens": j.practitioners?.length || 0,
-        "Internes": j.interns?.length || 0,
-        "Salles": j.rooms?.length || 0
-      });
-
-      // Pour coller au comportement d’un import fichier classique
-      if (RELOAD_AFTER_PULL) {
-        console.log("[PULL] reload de la page (style Import JSON) dans 100ms…");
-        setTimeout(()=>{ try{ location.reload(); }catch(_){ } }, 100);
+      if (VERIFY_AFTER_PUSH) {
+        const back = await jsGet();
+        const same = !!(back && back.__meta && snap.__meta && back.__meta.updatedAt === snap.__meta.updatedAt);
+        status(same ? "Enregistré (vérifié) ✅" : "Enregistré (à vérifier)");
+        console.table({
+          "size envoyé": size,
+          "updatedAt envoyé": snap.__meta && snap.__meta.updatedAt,
+          "updatedAt lu": back.__meta && back.__meta.updatedAt,
+          "vérif": same
+        });
+      } else {
+        status("Enregistré sur JsonStorage ✅");
       }
     }catch(e){
       console.warn(e);
-      status("Échec lecture : " + (e.message || e));
+      status("Échec écriture : " + (e.message || e));
     }
   }
 
-  // bind bouton Recharger si présent
-  try{
-    const el = document.getElementById("btnSimplePull");
-    if (el && !el.__bound) {
-      el.__bound = true;
-      el.addEventListener("click", importStylePull);
-    }
-  }catch(_){}
+  /* ====== (RE)BIND ROBUSTE DU BOUTON ====== */
+  function hardBindPush(ids, handler){
+    let bound = false;
+    ids.forEach(id=>{
+      const el = document.getElementById(id);
+      if (!el) return;
+      // on remplace le noeud par un clone pour purger d’anciens écouteurs
+      const clone = el.cloneNode(true);
+      clone.__bound = true;
+      clone.addEventListener("click", (ev)=>{
+        try{ ev.preventDefault(); ev.stopPropagation(); }catch(_){}
+        handler();
+      }, { passive:false });
+      el.replaceWith(clone);
+      console.log("[PUSH] relié sur #"+id);
+      bound = true;
+    });
+    if (!bound) console.warn("[PUSH] bouton introuvable (cherché:", ids.join(", "), ")");
+  }
 
-  // expose en console
-  window.__jsonstorage = Object.assign(window.__jsonstorage||{}, { importStylePull });
+  hardBindPush(["btnSimplePush","btnPush","btnSaveCloud"], simplePush);
+
+  // Expose en console
+  window.__jsonstorage = Object.assign(window.__jsonstorage||{}, { simplePush });
+
 })();
 </script>
+
 
 
 </body></html>
