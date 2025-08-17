@@ -3173,7 +3173,6 @@ $('btnExport').onclick=function(){
 </script>
 
 
-
 <script>
 (function(){
   /* ===== Helper rôle ===== */
@@ -3223,9 +3222,41 @@ $('btnExport').onclick=function(){
     };
   })();
 
-  /* ===== Verrous : tout autoriser dans Sauvegarde sauf "Réinitialiser" (admin-only) ===== */
+  /* ===== Verrous : droits par rôle dans l’onglet Sauvegarde ===== */
   (function(){
     var origLocks = window.applyRoleLocks;
+
+    function enableEl(el){
+      el.disabled = false;
+      el.style.opacity = '';
+      el.style.pointerEvents = '';
+      el.removeAttribute('aria-disabled');
+      if(/Lecture seule|Accès réservé/.test(el.title||'')) el.title = '';
+      el.tabIndex = 0;
+    }
+    function disableEl(el, title){
+      el.disabled = true;
+      el.style.opacity = '0.5';
+      el.style.pointerEvents = 'none';
+      el.setAttribute('aria-disabled','true');
+      if(title){ el.title = title; } else if(!el.title){ el.title = 'Lecture seule'; }
+      el.tabIndex = -1;
+    }
+
+    function clearResetGuard(){
+      var btn = document.getElementById('btnReset');
+      if(btn && btn._resetGuard){
+        btn.removeEventListener('click', btn._resetGuard, true);
+        btn._resetGuard = null;
+      }
+    }
+    function setResetGuardForNonAdmin(){
+      var btn = document.getElementById('btnReset');
+      if(!btn) return;
+      clearResetGuard();
+      btn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
+      btn.addEventListener('click', btn._resetGuard, true);
+    }
 
     window.applyRoleLocks = function(){
       if(typeof origLocks === 'function'){ try{ origLocks(); }catch(e){} }
@@ -3233,18 +3264,27 @@ $('btnExport').onclick=function(){
       var active = document.querySelector('section:not(.hidden)');
       if(!active) return;
 
-      // Onglet Sauvegarde : ré-autoriser tout, sauf Réinitialiser si ≠ admin
+      // On ne touche qu'à l’onglet Sauvegarde
       if(active.id === 'page-save'){
-        var r = (function(){ try{return getRole();}catch(e){return 'interne';} })();
+        var r; try{ r = getRole(); }catch(e){ r = 'interne'; }
 
-        // (A) Tout réactiver
+        // IDs connus dans l’onglet sauvegarde
+        var ids = {
+          importBtn: 'btnImport',
+          fileImport:'fileImport',
+          exportBtn: 'btnExport',
+          pullBtn:   'btnSimplePull',   // Interne : autorisé
+          pushBtn:   'btnSimplePush',   // Interne : INTERDIT
+          resetBtn:  'btnReset'
+        };
+
+        // (A) Tout réactiver d'abord (on repart d'un état propre)
         var nodes = active.querySelectorAll('input, button, select, textarea');
         nodes.forEach(function(el){
-          el.disabled = false;
-          el.style.opacity = '';
-          el.style.pointerEvents = '';
-          el.removeAttribute('aria-disabled');
-          el.title = (el.id==='btnReset'? el.title : '');
+          enableEl(el);
+          if(el.id === 'btnReset' && r !== 'admin'){
+            // on remettra les règles reset juste après
+          }
         });
 
         // (B) Admin-only pour Réinitialiser
@@ -3253,27 +3293,34 @@ $('btnExport').onclick=function(){
           // Retirer d’anciens garde-fous si présents
           if(btn._resetGuard){ btn.removeEventListener('click', btn._resetGuard, true); btn._resetGuard=null; }
           if(r !== 'admin'){
-            btn.disabled = true;
-            btn.style.pointerEvents = 'none';
-            btn.style.opacity = '0.5';
-            btn.setAttribute('aria-disabled','true');
-            btn.tabIndex = -1;
-            if(!/Accès réservé/.test(btn.title||'')) btn.title = 'Accès réservé à l’administrateur';
+            disableEl(btn, 'Accès réservé à l’administrateur');
             btn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
             btn.addEventListener('click', btn._resetGuard, true);
           }else{
-            btn.disabled = false;
-            btn.style.pointerEvents = '';
-            btn.style.opacity = '';
-            btn.removeAttribute('aria-disabled');
-            btn.tabIndex = 0;
-            if(btn.title === 'Accès réservé à l’administrateur') btn.title = '';
+            enableEl(btn);
           }
         }
+
+        // (C) Interne : interdire **uniquement** le bouton "Pousser" (push)
+        if(r === 'interne'){
+          var push = document.getElementById(ids.pushBtn);
+          if(push){
+            // Désactiver + garde-fou anti-clic
+            disableEl(push, 'Action non autorisée (réservé Sénior/Admin)');
+            if(push._pushGuard){ push.removeEventListener('click', push._pushGuard, true); }
+            push._pushGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Pousser est réservé aux seniors/administrateurs.'); return false; };
+            push.addEventListener('click', push._pushGuard, true);
+          }
+          // Le bouton "Recharger" (pull) reste actif
+        }
+
+        // (D) Seniors : inchangé (tout OK sauf reset qui reste admin-only ci-dessus)
+        return;
       }
+      // Autres onglets : inchangés (tes droits actuels restent tels quels)
     };
 
-    // Rendre visible/cliquable le bouton d’onglet "Sauvegarde" dans la barre d’onglets
+    // Bouton d’onglet "Sauvegarde" visible/cliquable
     function ensureSaveTabButton(){
       var tabs = document.getElementById('tabs');
       if(!tabs) return;
