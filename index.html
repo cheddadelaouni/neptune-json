@@ -3291,6 +3291,22 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
     }
   }
 
+    /* ====== (RE)BIND bouton “Pousser” ====== */
+  function rebindPush(){
+    const ids = ["btnSimplePush","btnPousser","btnSaveCloud"];
+    let ok = false;
+    ids.forEach(id=>{
+      const el = document.getElementById(id);
+      if (!el) return;
+      const clone = el.cloneNode(true);      // purge anciens handlers
+      clone.addEventListener("click", (ev)=>{ try{ev.preventDefault();ev.stopPropagation();}catch(_){ } simplePush(); });
+      el.replaceWith(clone);
+      console.log("[WIRE] Pousser → #"+id);
+      ok = true;
+    });
+    if (!ok) console.warn("[WIRE] aucun bouton trouvé pour Pousser (cherché:", ids.join(", "), ")");
+    return ok;
+  }
   /* ====== (RE)BIND bouton « Recharger » ====== */
   function rebindPull(){
     const ids = ["btnSimplePull","btnRecharger","btnLoadCloud","btnReload","btnSync","btnImportCloud"];
