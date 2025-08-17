@@ -1163,8 +1163,14 @@ if(_role !== 'admin' && (id==='page-data' || id==='page-week')){ alert('Accès r
     buildYearSelect(y, ui.year);
     y.value = String(ui.year||2025);
     if(!w.value) w.value = String(ui.week||36);
-    if(!p.options.length) buildPracSelect(p);
-    if(!p.value && data.practitioners.length){ p.value=data.practitioners[0].name; }
+        // Rebuild select from data on every render (preserve previous selection)
+    (function(){
+      var prev = p.value;
+      buildPracSelect(p);
+      var exists = false; try{ exists = Array.isArray(data.practitioners) && data.practitioners.some(function(x){return x && x.name===prev;}); }catch(_){}
+      if(prev && exists){ p.value = prev; }
+      else if(!p.value && Array.isArray(data.practitioners) && data.practitioners.length){ p.value = data.practitioners[0].name; }
+    })();
 
     function syncRange(){
       var wk=parseInt(w.value,10)||36, yr=parseInt(y.value,10)||2025;
@@ -1356,8 +1362,14 @@ if(_role !== 'admin' && (id==='page-data' || id==='page-week')){ alert('Accès r
     buildYearSelect(y, ui.year);
     y.value = String(ui.year||2025);
     if(!w.value) w.value = String(ui.week||36);
-    if(!p.options.length) buildInternSelect(p);
-    if(!p.value && data.interns.length){ p.value=data.interns[0].name; }
+        // Rebuild select from data on every render (preserve previous selection)
+    (function(){
+      var prev = p.value;
+      buildInternSelect(p);
+      var exists = false; try{ exists = Array.isArray(data.interns) && data.interns.some(function(x){return x && x.name===prev;}); }catch(_){}
+      if(prev && exists){ p.value = prev; }
+      else if(!p.value && Array.isArray(data.interns) && data.interns.length){ p.value = data.interns[0].name; }
+    })();
 
     function syncRange(){
       var wk=parseInt(w.value,10)||36, yr=parseInt(y.value,10)||2025;
