@@ -767,12 +767,26 @@ document.addEventListener('DOMContentLoaded', enhanceSavePageUI);
 
 
   // Rest rule
-  function isRestAfterGuard(week, dayIdx, name){
-    var W=String(week); if(!name) return false;
-    if(dayIdx===0){ return data.guards[W] && data.guards[W]['Dimanche']===name; }
-    var prevDay=DAYS[dayIdx-1];
-    return data.guards[W] && data.guards[W][prevDay]===name;
+function isRestAfterGuard(week, dayIdx, name){
+  if(!name) return false;
+
+  // Lundi : repos si garde le DIMANCHE de la semaine PRÉCÉDENTE
+  if(dayIdx === 0){
+    var w = parseInt(week, 10) || 0;
+    var prevW = String(w > 1 ? (w - 1) : 53); // mettre 52 si votre calendrier n’a que 52 semaines
+    try{
+      return !!(data.guards[prevW] && data.guards[prevW]['Dimanche'] === name);
+    }catch(e){ return false; }
   }
+
+  // Mar→Ven : repos si garde la veille dans la même semaine
+  var W = String(week);
+  var prevDay = DAYS[dayIdx - 1];
+  try{
+    return !!(data.guards[W] && data.guards[W][prevDay] === name);
+  }catch(e){ return false; }
+}
+
   function isRestAfterGuardIntern(week, dayIdx, name){
   if(!name) return false;
   // Monday rest depends on SUNDAY of the PREVIOUS week (S-1).
