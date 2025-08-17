@@ -3184,350 +3184,176 @@ var nodes = active.querySelectorAll('input, select, textarea, button');
 (() => {
   "use strict";
 
-  /* ====== CONFIG JsonStorage ====== */
+  /* ====== CONFIG JSONSTORAGE ====== */
   const API_KEY = "1c5f1698-c8f7-4992-988a-d1ae29cb35ee";
   const URI     = "https://api.jsonstorage.net/v1/json/88ff1334-435e-4e42-bcf4-65ee4777fa1f/caa3fc75-d869-4cc7-99fa-7fa93b38145c";
   const withKey = (u) => u + (u.includes("?") ? "&" : "?") + "apiKey=" + encodeURIComponent(API_KEY);
 
-  const VERIFY_AFTER_PUSH      = true;
-  const MIN_BYTES_TO_TRUST     = 2000;
-  const FORCE_RELOAD_AFTER_PULL = false; // ⬅️ désactivé : plus de “reset” involontaire
+  /* ====== OPTIONS ====== */
+  // true = on refait EXACTEMENT le flux d'un import fichier: save() + (ré)hydrate + reload
+  const RELOAD_AFTER_PULL = true;
 
-  /* ====== Utils ====== */
-  const sleep  = (ms)=>new Promise(r=>setTimeout(r,ms));
-  const status = (msg) => {
+  /* ====== UTIL ====== */
+  const now = () => { try { return new Date().toLocaleTimeString(); } catch(_) { return ""; } };
+  function status(msg){
     const el = document.getElementById("simpleSaveStatus") || document.getElementById("barStatus");
-    if (el) el.textContent = msg + " " + new Date().toLocaleTimeString();
+    if (el) el.textContent = msg + (now() ? (" ("+now()+")") : "");
     console.log("[STATUS]", msg);
-  };
-  const devId  = () => {
-    try{
-      let id = localStorage.getItem("neptune-device");
-      if(!id){ id = Math.random().toString(36).slice(2)+"-"+Date.now().toString(36); localStorage.setItem("neptune-device", id); }
-      return id;
-    }catch(_){ return "console"; }
-  };
-  const clone  = (x) => JSON.parse(JSON.stringify(x));
-  const sizeOf = (o) => { try { return JSON.stringify(o).length; } catch(_){ return 0; } };
+  }
+  const clone = (x) => JSON.parse(JSON.stringify(x || {}));
 
-  /* ====== I/O JsonStorage ====== */
+  function migrateDataIfAny(j){
+    try {
+      if (typeof window.__neptuneMigrateData === "function") return window.__neptuneMigrateData(j);
+    } catch(e) { console.warn("[MIGRATE] KO:", e); }
+    // Fallback minimal compatible
+    try{
+      const out = Object.assign({}, j||{});
+      if(!Array.isArray(out.specialties)) out.specialties = out.specialties || [];
+      if(!Array.isArray(out.practitioners)) out.practitioners = out.practitioners || [];
+      if(!Array.isArray(out.interns)) out.interns = out.interns || [];
+      if(!Array.isArray(out.rooms)) out.rooms = out.rooms || [];
+      if(typeof out.absences!=="object" || !out.absences) out.absences = {};
+      if(typeof out.absencesIntern!=="object" || !out.absencesIntern) out.absencesIntern = {};
+      if(typeof out.guards!=="object" || !out.guards) out.guards = {};
+      if(typeof out.guardsIntern!=="object" || !out.guardsIntern) out.guardsIntern = {};
+      if(typeof out.oncalls!=="object" || !out.oncalls) out.oncalls = {};
+      if(typeof out.overrides!=="object" || !out.overrides) out.overrides = {};
+      return out;
+    }catch(e){ return j; }
+  }
+
+  function summarizeIfAny(d){
+    try { if (typeof window.__neptuneSummarizeData === "function") window.__neptuneSummarizeData(d); } catch(_){}
+  }
+
+  function propagateSplitGlobals(d){
+    try{
+      window.specialties    = d.specialties || [];
+      window.practitioners  = d.practitioners || [];
+      window.interns        = d.interns || [];
+      window.rooms          = d.rooms || [];
+      window.absences       = d.absences || {};
+      window.absencesIntern = d.absencesIntern || {};
+      window.guards         = d.guards || {};
+      window.guardsIntern   = d.guardsIntern || {};
+      window.oncalls        = d.oncalls || {};
+      window.overrides      = d.overrides || {};
+    }catch(e){ console.warn("[PROPAGATE] KO:", e); }
+  }
+
+  function updateAllEmbeds(j){
+    const ids = [];
+    try{
+      const embeds = document.querySelectorAll('script[type="application/json"][id^="NEPTUNE_EMBED"]');
+      embeds.forEach(el => {
+        try{
+          el.textContent = JSON.stringify(j);
+          ids.push(el.id);
+        }catch(e){
+          console.warn("[EMBED] update KO pour", el.id, e);
+        }
+      });
+      console.log("[EMBED] MAJ :", ids.length ? ids.join(", ") : "aucun");
+    }catch(e){
+      console.warn("[EMBED] updateAllEmbeds KO:", e);
+    }
+    return ids;
+  }
+
+  // écrit via save() (clé officielle de l’app) + en miroir sur quelques clés usuelles (sécurité)
+  function persistToLocalStorageViaApp(d){
+    let wrote = [];
+    try {
+      // 1) remplit les globals attendues
+      propagateSplitGlobals(d);
+
+      // 2) set data + save() de l’app (IMPORTANT: c’est ça qui écrit sous la bonne clé)
+      try { window.data = d; } catch(_){}
+      try { if (typeof window.save === "function") { window.save(); wrote.push("save()"); } } catch(e){ console.warn("[SAVE] KO:", e); }
+
+      // 3) miroirs de compat (au cas où certaines vues lisent directement LS)
+      const mirrors = ["neptune-v5","NEPTUNE_DATA","neptune-data","neptune","NEPTUNE_STATE"];
+      try{
+        mirrors.forEach(k=>{
+          try { localStorage.setItem(k, JSON.stringify(d)); wrote.push(k); } catch(_){}
+        });
+      }catch(_){}
+    } catch(e) {
+      console.warn("[PERSIST] KO:", e);
+    }
+    console.log("[LOCALSTORAGE] écrit →", wrote.join(", ") || "rien");
+  }
+
+  function callHydrators(){
+    // Essaie tous les initialiseurs connus
+    ["load","loadData","hydrate","hydrateData","reloadData","init","initialize","bootstrap","refreshActivePage","renderAccueil"].forEach(fn=>{
+      try { if (typeof window[fn] === "function") window[fn](); } catch(e){ console.warn("[HYDRATE] appel", fn, "KO:", e); }
+    });
+    // Event custom
+    try { window.dispatchEvent(new CustomEvent("neptune:data-updated")); } catch(_){}
+  }
+
   async function jsGet(){
-    const r = await fetch(withKey(URI) + "&_ts=" + Date.now(), { cache:"no-store" });
+    const url = withKey(URI) + "&_ts=" + Date.now();
+    const r = await fetch(url, { method:"GET", cache:"no-store", headers:{ "Cache-Control":"no-cache" } });
     if (!r.ok) throw new Error("GET "+r.status);
     return r.json();
   }
-  async function jsPut(obj){
-    const body = JSON.stringify(obj ?? {});
-    const r = await fetch(withKey(URI), { method:"PUT", headers:{ "Content-Type":"application/json" }, body, cache:"no-store" });
-    if (!r.ok) {
-      const t = await r.text().catch(()=> "");
-      throw new Error("PUT "+r.status+" — "+t.slice(0,200));
-    }
-    return true;
-  }
 
-  /* ====== Migration + résumé (parité Import JSON) ====== */
-  function migrateData(j){
-    try{ if (typeof window.__neptuneMigrateData === "function") return window.__neptuneMigrateData(j); }catch(_){}
-    const out = Object.assign({}, j||{});
-    if(!Array.isArray(out.specialties))   out.specialties   = out.specialties   || [];
-    if(!Array.isArray(out.practitioners)) out.practitioners = out.practitioners || [];
-    if(!Array.isArray(out.interns))       out.interns       = out.interns       || [];
-    if(!Array.isArray(out.rooms))         out.rooms         = out.rooms         || [];
-    out.absences       = out.absences       || {};
-    out.absencesIntern = out.absencesIntern || {};
-    out.guards         = out.guards         || {};
-    out.guardsIntern   = out.guardsIntern   || {};
-    out.oncalls        = out.oncalls        || {};
-    out.overrides      = out.overrides      || {};
-    for (let r of out.rooms) { if (r && typeof r === "object" && !r.schedule) r.schedule = {}; }
-    return out;
-  }
-  function summarizeData(d){
-    try{
-      if (typeof window.__neptuneSummarizeData === "function") { window.__neptuneSummarizeData(d); return; }
-      const s = [
-        'Spécialités: '+(d.specialties?d.specialties.length:0),
-        'Praticiens: '+(d.practitioners?d.practitioners.length:0),
-        'Internes: '+(d.interns?d.interns.length:0),
-        'Salles: '+(d.rooms?d.rooms.length:0),
-        'Absences (semaines): '+(d.absences?Object.keys(d.absences).length:0),
-        'Absences internes (semaines): '+(d.absencesIntern?Object.keys(d.absencesIntern).length:0),
-        'Gardes (semaines): '+(d.guards?Object.keys(d.guards).length:0),
-        'Gardes internes (semaines): '+(d.guardsIntern?Object.keys(d.guardsIntern).length:0),
-        'Astreintes (semaines): '+(d.oncalls?Object.keys(d.oncalls).length:0)
-      ].join(' · ');
-      const hint = document.getElementById('saveHint') || document.getElementById('simpleSaveStatus');
-      if (hint) hint.textContent = 'Import: ' + s;
-    }catch(_){}
-  }
-
-  /* ====== Propagation en mémoire (globals que la vue consomme) ====== */
-  function propagateSplitGlobals(j){
-    const keys = ["specialties","practitioners","interns","rooms","absences","absencesIntern","guards","guardsIntern","oncalls","overrides"];
-    keys.forEach(k => { try { window[k] = j[k]; } catch(_){ } });
-  }
-
-  /* ====== Mise à jour du plus gros <script id^=NEPTUNE_EMBED> dans le DOM ====== */
-  function updateBiggestEmbed(j){
-    try{
-      const embeds = [...document.querySelectorAll('script[type="application/json"][id^="NEPTUNE_EMBED"]')];
-      if (!embeds.length) return null;
-      const biggest = embeds.reduce((a,b)=> (a.textContent.length >= b.textContent.length ? a : b));
-      biggest.textContent = JSON.stringify(j);
-      console.log("[EMBED] mis à jour dans", biggest.id, "· taille =", biggest.textContent.length, "o");
-      return biggest.id;
-    }catch(e){
-      console.warn("[EMBED] update KO:", e);
-      return null;
-    }
-  }
-
-  /* ====== Apprentissage + écriture localStorage (toutes clés candidates) ====== */
-  function persistToAllStores(currentData){
-    // 1) espionne save() pour récupérer la/les clés réellement utilisées
-    const seen = new Set();
-    const origSet = localStorage.setItem;
-    localStorage.setItem = function(k,v){
-      try{ seen.add(k); }catch(_){}
-      return origSet.apply(this, arguments);
-    };
-    try { if (typeof window.save === "function") window.save(); } catch(_){}
-    try { localStorage.setItem = origSet; } catch(_){}
-
-    // 2) construit la liste de clés à écrire
-    const candidates = new Set([
-      // clés vues pendant save()
-      ...seen,
-      // clé globale si exposée
-      (typeof window.KEY === "string" && window.KEY) ? window.KEY : null,
-      // fallbacks connus
-      "neptune-v5", "NEPTUNE_DATA", "neptune-data", "neptune", "NEPTUNE_STATE"
-    ].filter(Boolean));
-
-    // 3) écrit dans toutes
-    const body = JSON.stringify(currentData);
-    for (const k of candidates){
-      try{
-        localStorage.setItem(k, body);
-        console.log("[LOCALSTORAGE] écrit →", k);
-      }catch(e){
-        console.warn("[LOCALSTORAGE] setItem KO pour", k, e);
-      }
-    }
-
-    // fixe window.KEY si absent
-    try{ if (!window.KEY){ const first = candidates.values().next().value; if (first) window.KEY = first; } }catch(_){}
-    return [...candidates];
-  }
-
-  /* ====== Injection façon “Import JSON” (sans reload forcé) ====== */
-  async function applyAsIfImported(payload){
-    const j = migrateData(payload || {});
-    // 1) data & globals
-    try { window.data = j; } catch(_){}
-    try { data = j; } catch(_){}
-    propagateSplitGlobals(j);
-    // 2) résumé visuel
-    summarizeData(j);
-    // 3) persistance : localStorage toutes clés + EMBED DOM
-    const writtenKeys = persistToAllStores(j);
-    const embedId = updateBiggestEmbed(j);
-
-    // si l’app sait sauver le HTML, on tente
-    try{
-      if (window.__neptuneAutosave && typeof window.saveHtmlToDisk === "function"){
-        await window.saveHtmlToDisk();
-        console.log("[DISK] HTML enregistré via saveHtmlToDisk()");
-      }else if ("showOpenFilePicker" in window && typeof window.pickHtmlFile === "function"){
-        // on évite les prompts : à déclencher manuellement si tu veux
-        console.log("[DISK] File System API dispo — appelle pickHtmlFile() si tu veux figer l'HTML.");
-      }
-    }catch(e){
-      console.warn("[DISK] sauvegarde HTML KO:", e);
-    }
-
-    // 4) rafraîchit l’UI
-    try{
-      if (typeof window.refreshActivePage === "function") window.refreshActivePage();
-      else if (typeof window.renderAccueil === "function") window.renderAccueil();
-      else if (typeof window.buildTabs === "function") { window.buildTabs(); if (typeof window.renderAccueil === "function") window.renderAccueil(); }
-    }catch(_){}
-
-    // 5) (optionnel) reload — mais par défaut OFF pour éviter l’effet “reset”
-    if (FORCE_RELOAD_AFTER_PULL){
-      setTimeout(()=>{ try{ location.reload(); }catch(_){ } }, 150);
-    }
-
-    console.log("[PULL] injecté. Keys écrites:", writtenKeys, "· EMBED:", embedId || "none");
-  }
-
-  /* ====== Capture exacte de l’export (et bloque le download .json) ====== */
-  async function captureExportPayload(timeoutMs = 2000){
-    let resolved = false, restored = false;
-    const origCreate = URL.createObjectURL;
-    const origClick  = HTMLAnchorElement.prototype.click;
-
-    function restore(){
-      if (restored) return;
-      try { URL.createObjectURL = origCreate; } catch(_){}
-      try { HTMLAnchorElement.prototype.click = origClick; } catch(_){}
-      restored = true;
-    }
-
-    return new Promise(async (resolve) => {
-      HTMLAnchorElement.prototype.click = function(){
-        try{
-          if (this && this.href && String(this.href).startsWith("blob:") &&
-              ((this.download && /\.json$/i.test(this.download)) || /json/i.test(this.type || ""))) {
-            console.log("[CAPTURE EXPORT] download JSON bloqué:", this.download || this.href);
-            return; // bloque le téléchargement
-          }
-        }catch(_){}
-        return origClick.apply(this, arguments);
-      };
-
-      URL.createObjectURL = function(blob){
-        try{
-          if (blob && blob instanceof Blob){
-            const fr = new FileReader();
-            fr.onload = () => {
-              try{
-                const txt  = String(fr.result || "");
-                const json = JSON.parse(txt);
-                window.__lastExport = json;
-                console.log("[CAPTURE EXPORT] taille =", txt.length, "octets · clés:", Object.keys(json));
-                if (!resolved){ resolved = true; restore(); resolve(json); }
-              }catch(e){
-                console.warn("[CAPTURE EXPORT] non-JSON:", e);
-              }
-            };
-            fr.readAsText(blob);
-          }
-        }catch(e){ console.warn("Shim createObjectURL erreur:", e); }
-        return origCreate.apply(this, arguments);
-      };
-
-      try { if (typeof save === "function") save(); } catch(_){}
-      const btn = document.getElementById("btnExport");
-      if (btn) btn.click(); else console.warn("⚠️ #btnExport introuvable — clique manuellement sur « Exporter JSON ».");
-
-      await sleep(timeoutMs);
-      if (!resolved){ restore(); resolve(null); }
-    });
-  }
-
-  /* ====== Fallback si export non capturé ====== */
-  function ensureMeta(o){
-    try{
-      o.__meta = o.__meta || {};
-      o.__meta.updatedAt = new Date().toISOString();
-      o.__meta.by = devId();
-    }catch(_){}
-    return o;
-  }
-  function buildFallbackSnapshot(){
-    try{
-      if (window.data && typeof window.data === "object"){
-        const j = clone(window.data);
-        const big = (Array.isArray(j.rooms) && j.rooms.length) ||
-                    (Array.isArray(j.practitioners) && j.practitioners.length) ||
-                    (Array.isArray(j.specialties) && j.specialties.length);
-        if (big){ console.log("[FALLBACK] window.data"); return ensureMeta(j); }
-      }
-    }catch(e){ console.warn("[FALLBACK:data]", e); }
-    try{
-      const embeds = [...document.querySelectorAll('script[type="application/json"][id^="NEPTUNE_EMBED"]')];
-      if (embeds.length){
-        const biggest = embeds.reduce((a,b)=> (a.textContent.length >= b.textContent.length ? a : b));
-        const j = JSON.parse(biggest.textContent);
-        console.log("[FALLBACK] NEPTUNE_EMBED =", biggest.id);
-        return ensureMeta(j);
-      }
-    }catch(e){ console.warn("[FALLBACK:EMBED]", e); }
-    const agg = {};
-    ["specialties","practitioners","interns","rooms","absences","absencesIntern","guards","guardsIntern","oncalls","overrides"]
-      .forEach(k => { if (window[k] !== undefined) agg[k] = window[k]; });
-    if (Object.keys(agg).length){ console.log("[FALLBACK] globals", Object.keys(agg)); return ensureMeta(clone(agg)); }
-    console.warn("[FALLBACK] minimal");
-    return ensureMeta({});
-  }
-
-  /* ====== Actions ====== */
-  async function simplePush(){
-    try{
-      status("Préparation…");
-      let payload = await captureExportPayload(2200);
-      let size = payload ? sizeOf(payload) : 0;
-
-      if (!payload || size < MIN_BYTES_TO_TRUST){
-        if (!payload) console.warn("Capture export KO → fallback");
-        else console.warn("Export trop petit ("+size+" o) → fallback");
-        payload = buildFallbackSnapshot();
-        size    = sizeOf(payload);
-      }
-      if (size < MIN_BYTES_TO_TRUST){
-        console.warn("⚠️ Snapshot trop petit ("+size+" o) — push annulé.");
-        status("Échec écriture : données incomplètes (voir console).");
-        return;
-      }
-
-      payload.__meta = payload.__meta || {};
-      payload.__meta.updatedAt = new Date().toISOString();
-      payload.__meta.by = devId();
-
-      status("Écriture… ("+size+" o)");
-      await jsPut(payload);
-
-      if (VERIFY_AFTER_PUSH){
-        const back = await jsGet();
-        window.__lastPulled = back;
-        const ok = !!back && Object.keys(back).length >= 5;
-        status(ok ? "Enregistré (vérifié) ✅" : "Enregistré (à vérifier)");
-      } else {
-        status("Enregistré sur JsonStorage ✅");
-      }
-    }catch(e){
-      console.warn(e);
-      status("Échec écriture : " + (e.message || e));
-    }
-  }
-
-  async function simplePull(){
+  async function importStylePull(){
     try{
       status("Lecture…");
       const remote = await jsGet();
-      const sz = sizeOf(remote);
-      if (!remote || typeof remote !== "object" || sz < MIN_BYTES_TO_TRUST){
-        console.warn("PULL reçu mais semble incomplet (taille="+sz+")");
+      const j = migrateDataIfAny(clone(remote));
+
+      // résumé visuel (comme l'import)
+      summarizeIfAny(j);
+
+      // persist (clé officielle via save() + miroirs)
+      persistToLocalStorageViaApp(j);
+
+      // mets à jour tous les EMBEDs pour que le HTML reflète l’état courant
+      const embeds = updateAllEmbeds(j);
+      if (embeds.length){
+        console.log("[PULL] EMBED mis à jour :", embeds);
       }
-      await applyAsIfImported(remote);
+
+      // (re)hydratation immédiate
+      callHydrators();
+
       status("Chargé depuis JsonStorage (réinjecté)");
+      console.table({
+        "Spécialités": j.specialties?.length || 0,
+        "Praticiens": j.practitioners?.length || 0,
+        "Internes": j.interns?.length || 0,
+        "Salles": j.rooms?.length || 0
+      });
+
+      // Pour coller au comportement d’un import fichier classique
+      if (RELOAD_AFTER_PULL) {
+        console.log("[PULL] reload de la page (style Import JSON) dans 100ms…");
+        setTimeout(()=>{ try{ location.reload(); }catch(_){ } }, 100);
+      }
     }catch(e){
       console.warn(e);
       status("Échec lecture : " + (e.message || e));
     }
   }
 
-  /* ====== Bind UI ====== */
-  function bindClick(id, fn){
-    const el = document.getElementById(id);
-    if (el && !el.__bound){ el.__bound = true; el.addEventListener("click", fn); }
-    else if (!el){ console.warn("[JsonStorage] Bouton manquant :", id); }
-  }
-  bindClick("btnSimplePush", simplePush);
-  bindClick("btnSimplePull", simplePull);
+  // bind bouton Recharger si présent
+  try{
+    const el = document.getElementById("btnSimplePull");
+    if (el && !el.__bound) {
+      el.__bound = true;
+      el.addEventListener("click", importStylePull);
+    }
+  }catch(_){}
 
-  /* ====== Expose console ====== */
-  window.__jsonstorage = {
-    URI, API_KEY,
-    jsGet, jsPut,
-    simplePull, simplePush,
-    applyAsIfImported,
-    buildFallbackSnapshot,
-    captureExportPayload
-  };
+  // expose en console
+  window.__jsonstorage = Object.assign(window.__jsonstorage||{}, { importStylePull });
 })();
 </script>
+
 
 </body></html>
