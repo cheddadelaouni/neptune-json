@@ -3199,17 +3199,14 @@ $('btnExport').onclick=function(){
 
       // — Forçage spécial pour "page-save" (Sauvegarde) —
       if(id === 'page-save'){
-        // 1) Tente l’original (au cas où) mais on ne s’y fie pas
         if(typeof orig === 'function'){ try{ orig(id, btn); }catch(e){} }
 
-        // 2) Forcer l’affichage de la section Sauvegarde quoi qu’il arrive
         try{
           document.querySelectorAll('section').forEach(function(s){ s.classList.add('hidden'); });
           var sec = document.getElementById('page-save');
           if(sec){ sec.classList.remove('hidden'); }
         }catch(e){}
 
-        // 3) Recréer l’UI de sauvegarde + appliquer verrous
         try{ if(typeof window.buildSave === 'function') window.buildSave(); }catch(e){}
         try{ if(typeof window.applyRoleLocks === 'function') window.applyRoleLocks(); }catch(e){}
 
@@ -3227,10 +3224,26 @@ $('btnExport').onclick=function(){
     };
   })();
 
-  /* ===== Verrous : tout autoriser dans Sauvegarde sauf "Réinitialiser" (admin-only)
-                      + "Pousser (Sénior)" = "Pousser (Admin)" ===== */
+  /* ===== Verrous Sauvegarde : Interne ne peut pas "Pousser" ; Senior "Pousser" = Admin ===== */
   (function(){
     var origLocks = window.applyRoleLocks;
+
+    function enableEl(el){
+      el.disabled = false;
+      el.style.opacity = '';
+      el.style.pointerEvents = '';
+      el.removeAttribute('aria-disabled');
+      if(/Lecture seule|Accès réservé/.test(el.title||'')) el.title = '';
+      el.tabIndex = 0;
+    }
+    function disableEl(el, title){
+      el.disabled = true;
+      el.style.opacity = '0.5';
+      el.style.pointerEvents = 'none';
+      el.setAttribute('aria-disabled','true');
+      if(title){ el.title = title; } else if(!el.title){ el.title = 'Lecture seule'; }
+      el.tabIndex = -1;
+    }
 
     // Détection robuste d’un bouton "push"
     function isPushControl(el){
@@ -3240,26 +3253,74 @@ $('btnExport').onclick=function(){
       var on  = (el.getAttribute('onclick')||'').toLowerCase();
       var act = (el.getAttribute('data-action')||'').toLowerCase();
       var sig = id+' '+nm+' '+txt+' '+on+' '+act;
-      return /btnsimplepush|push|pousser|publier|upload|sync|synchro/.test(sig);
+      return /btnsimplepush|push|pousser|publier|sync|synchro|upload/.test(sig);
     }
 
-    // ⚡ Élévation temporaire : SENIOR → ADMIN le temps du clic "Pousser"
+    // Bloque "push" pour Interne (même si un autre script réactive le bouton)
+    function installInternePushBlock(container){
+      if(container._internePushBlockInstalled) return;
+      container.addEventListener('click', function(ev){
+        try{
+          if(getRole() !== 'interne') return;
+          var el = ev.target && (ev.target.closest && ev.target.closest('button, input[type="button"], input[type="submit"], a'));
+          if(el && isPushControl(el)){
+            ev.preventDefault(); ev.stopImmediatePropagation();
+            alert('Pousser est réservé aux seniors/administrateurs.');
+          }
+        }catch(e){}
+      }, true);
+      container.addEventListener('submit', function(ev){
+        try{
+          if(getRole() !== 'interne') return;
+          var btn = container.querySelector('button[type="submit"], input[type="submit"]');
+          if(btn && isPushControl(btn)){
+            ev.preventDefault(); ev.stopImmediatePropagation();
+            alert('Pousser est réservé aux seniors/administrateurs.');
+          }
+        }catch(e){}
+      }, true);
+      container._internePushBlockInstalled = true;
+    }
+
+    // Élève TEMPORAIREMENT le rôle SENIOR → ADMIN le temps du clic "Pousser"
+    // (garantit que le payload est IDENTIQUE à celui de l’Admin)
     function installSeniorPushElevation(container){
       if(container._seniorPushElevateInstalled) return;
       container.addEventListener('click', function(ev){
         try{
-          var r = getRole();
-          if(r !== 'senior') return;
+          if(getRole() !== 'senior') return;
           var el = ev.target && (ev.target.closest && ev.target.closest('button, input[type="button"], input[type="submit"], a'));
           if(!el || !isPushControl(el)) return;
 
-          var prev = sessionStorage.getItem('neptuneRole') || 'senior';
+          var prevRole = sessionStorage.getItem('neptuneRole') || 'senior';
+          var prevGet  = window.getRole;
+
+          // élévation
           sessionStorage.setItem('neptuneRole', 'admin');
-          // On restaure juste après que les handlers du push aient lu le rôle
-          setTimeout(function(){ try{ sessionStorage.setItem('neptuneRole', prev); }catch(e){} }, 0);
+          window.getRole = function(){ return 'admin'; };
+
+          // restauration (après que les handlers push aient lu le rôle)
+          setTimeout(function(){
+            try{ sessionStorage.setItem('neptuneRole', prevRole); }catch(e){}
+            try{ window.getRole = prevGet; }catch(e){}
+          }, 2000); // fenêtre courte mais suffisante pour les handlers synchrones & premier async
         }catch(e){}
       }, true);
       container._seniorPushElevateInstalled = true;
+    }
+
+    // Admin-only pour Réinitialiser
+    function enforceResetAdminOnly(){
+      var btn = document.getElementById('btnReset');
+      if(!btn) return;
+      if(btn._resetGuard){ btn.removeEventListener('click', btn._resetGuard, true); btn._resetGuard=null; }
+      if(getRole() !== 'admin'){
+        disableEl(btn, 'Accès réservé à l’administrateur');
+        btn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
+        btn.addEventListener('click', btn._resetGuard, true);
+      }else{
+        enableEl(btn);
+      }
     }
 
     window.applyRoleLocks = function(){
@@ -3268,46 +3329,31 @@ $('btnExport').onclick=function(){
       var active = document.querySelector('section:not(.hidden)');
       if(!active) return;
 
-      // On ne touche qu'à l’onglet Sauvegarde
       if(active.id === 'page-save'){
-        var r; try{ r = getRole(); }catch(e){ r = 'interne'; }
+        var r = getRole();
 
-        // (A) Tout réactiver (base propre)
+        // 1) Tout remettre actif d'abord (base propre)
         var nodes = active.querySelectorAll('input, button, select, textarea');
-        nodes.forEach(function(el){
-          el.disabled = false;
-          el.style.opacity = '';
-          el.style.pointerEvents = '';
-          el.removeAttribute('aria-disabled');
-        });
+        nodes.forEach(enableEl);
 
-        // (B) Admin-only pour Réinitialiser (on garde ta règle)
-        var btn = document.getElementById('btnReset');
-        if(btn){
-          if(btn._resetGuard){ btn.removeEventListener('click', btn._resetGuard, true); btn._resetGuard=null; }
-          if(r !== 'admin'){
-            btn.disabled = true;
-            btn.style.pointerEvents = 'none';
-            btn.style.opacity = '0.5';
-            btn.setAttribute('aria-disabled','true');
-            btn.tabIndex = -1;
-            if(!/Accès réservé/.test(btn.title||'')) btn.title = 'Accès réservé à l’administrateur';
-            btn._resetGuard = function(ev){ ev.preventDefault(); ev.stopImmediatePropagation(); alert('Accès réservé à l’administrateur.'); return false; };
-            btn.addEventListener('click', btn._resetGuard, true);
-          }else{
-            btn.disabled = false;
-            btn.style.pointerEvents = '';
-            btn.style.opacity = '';
-            btn.removeAttribute('aria-disabled');
-            btn.tabIndex = 0;
-            if(btn.title === 'Accès réservé à l’administrateur') btn.title = '';
-          }
+        // 2) Admin-only pour Reset
+        enforceResetAdminOnly();
+
+        // 3) Règles "push"
+        if(r === 'interne'){
+          // Désactiver boutons push connus + blocage global
+          var suspects = active.querySelectorAll('button, input[type="button"], input[type="submit"], a');
+          suspects.forEach(function(el){ if(isPushControl(el)) disableEl(el, 'Pousser réservé Sénior/Admin'); });
+          installInternePushBlock(active);
+        }else if(r === 'senior'){
+          // Assurer que "Pousser" = Admin (payload identique)
+          installSeniorPushElevation(active);
         }
 
-        // (C) Installer l’élévation pour SENIOR sur le clic "Pousser"
-        // -> garantit que "Pousser (Sénior)" envoie exactement la même chose que "Pousser (Admin)"
-        installSeniorPushElevation(active);
+        // 4) Le bouton "Recharger" reste actif pour tout le monde
+        return;
       }
+      // Autres onglets : inchangés
     };
 
     // Bouton d’onglet "Sauvegarde" visible/cliquable
@@ -3350,7 +3396,6 @@ $('btnExport').onclick=function(){
   })();
 })();
 </script>
-
 
 
 
