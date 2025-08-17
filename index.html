@@ -2136,7 +2136,16 @@ tdSeg.appendChild(line);
       if(allow.length && allow.indexOf(spec)<0){
         alert('Spécialité « '+spec+' » non autorisée dans la salle « '+data.rooms[ri].name+' ».'); return;
       }
-      for(var s=a0; s<a1; s++){ data.rooms[ri].schedule[di][s]={spec:spec,prac:prac,intern:intern}; }
+      for(var s=a0; s<a1; s++){
+  var cur = data.rooms[ri].schedule[di][s] || {spec:'',prac:'',intern:''};
+  var next = {
+    spec: (spec || cur.spec),
+    prac: (prac ? prac : cur.prac),
+    intern: (intern ? intern : cur.intern)
+  };
+  data.rooms[ri].schedule[di][s] = next;
+}
+
       save(); draw();
     };
 
@@ -2172,7 +2181,113 @@ tdSeg.appendChild(line);
     var dates=weekDates(y, parseInt(w.value,10));
     $('absRange').textContent='S'+pad2(parseInt(w.value,10))+' · '+fmtDate(dates[0])+' → '+fmtDate(dates[4])+' / '+y;
     var cont=$('absTable'); clear(cont);
-    var tbl=document.createElement('table'); tbl.setAttribute('data-name','Absences Praticiens S'+pad2(parseInt(w.value,10)));
+    
+    // === Bulk absence (récurrence & période) — inserted ===
+    (function(){
+      try{
+        var tableWrap = $('absTable');
+        var parent = tableWrap.parentNode;
+        var bulk = $('absBulk');
+        // Helper
+        function pad2(n){ return (n<10?'0':'')+n; }
+        function ymd(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+        function setActive(btnOn, btnOff){ btnOn.classList.add('active'); btnOff.classList.remove('active'); }
+        function buildPracOptions(sel){
+          var cur = sel.value;
+          sel.innerHTML='';
+          for(var i=0;i<data.practitioners.length;i++){
+            var op=document.createElement('option'); op.value=data.practitioners[i].name; op.textContent=data.practitioners[i].name;
+            sel.appendChild(op);
+          }
+          if(cur){ sel.value=cur; }
+        }
+        function applyPeriod(prac, dStart, dEnd){
+          if(!prac || !dStart || !dEnd) return 0;
+          var cnt=0;
+          var d=new Date(dStart.getFullYear(), dStart.getMonth(), dStart.getDate());
+          var end=new Date(dEnd.getFullYear(), dEnd.getMonth(), dEnd.getDate());
+          while(d<=end){
+            var wd=(d.getDay()+6)%7; // 0=Mon..6=Sun
+            if(wd>=0 && wd<=4){
+              var week=isoWeekNumber(d);
+              ensureWeek(week);
+              var dayName=DAYS[wd];
+              if(!data.absences[String(week)][dayName]) data.absences[String(week)][dayName]={};
+              data.absences[String(week)][dayName][prac]=true;
+              cnt++;
+            }
+            d.setDate(d.getDate()+1);
+          }
+          return cnt;
+        }
+        function applyWeekly(prac, dayIdx, dStart, dEnd){
+          if(!prac || typeof dayIdx!=='number' || !dStart || !dEnd) return 0;
+          var cnt=0;
+          var d=new Date(dStart.getFullYear(), dStart.getMonth(), dStart.getDate());
+          var end=new Date(dEnd.getFullYear(), dEnd.getMonth(), dEnd.getDate());
+          while(d<=end){
+            var wd=(d.getDay()+6)%7; // 0=Mon..6=Sun
+            if(wd===dayIdx){
+              var week=isoWeekNumber(d);
+              ensureWeek(week);
+              var dayName=DAYS[dayIdx];
+              if(!data.absences[String(week)][dayName]) data.absences[String(week)][dayName]={};
+              data.absences[String(week)][dayName][prac]=true;
+              // jump 7 days to next same weekday
+              d.setDate(d.getDate()+7); cnt++; continue;
+            }
+            d.setDate(d.getDate()+1);
+          }
+          return cnt;
+        }
+
+        if(!bulk){
+          bulk=document.createElement('div');
+          bulk.id='absBulk';
+          bulk.className='controls';
+          // Defaults
+          var mon=isoWeekStartLocal(ui.year, ui.week);
+          var fri=new Date(mon); fri.setDate(mon.getDate()+4);
+          bulk.innerHTML=[
+            '<div class="item"><label>Praticien</label><select id="abpPrac"></select></div>',
+            '<div class="item"><label>Mode</label><div class="seg"><button id="abModeRec" class="active" type="button">Récurrence hebdo</button><button id="abModePer" type="button">Période</button></div></div>',
+            '<div class="item" id="abRecDayWrap"><label>Jour</label><select id="abRecDay">',
+              '<option value="0">Lundi</option><option value="1">Mardi</option><option value="2">Mercredi</option><option value="3">Jeudi</option><option value="4">Vendredi</option>',
+            '</select></div>',
+            '<div class="item"><label>Début</label><input id="abStart" type="date" value="'+ymd(mon)+'"></div>',
+            '<div class="item"><label>Fin</label><input id="abEnd" type="date" value="'+ymd(fri)+'"></div>',
+            '<div class="item"><label>&nbsp;</label><button id="abApply" type="button">Appliquer</button></div>'
+          ].join('');
+          parent.insertBefore(bulk, tableWrap);
+          // Wire up
+          var selPrac=$('abpPrac'); buildPracOptions(selPrac);
+          $('abModeRec').onclick=function(){ setActive(this, $('abModePer')); $('abRecDayWrap').style.display='block'; };
+          $('abModePer').onclick=function(){ setActive(this, $('abModeRec')); $('abRecDayWrap').style.display='none'; };
+          $('abApply').onclick=function(){
+            var prac = selPrac.value;
+            var sVal = $('abStart').value;
+            var eVal = $('abEnd').value;
+            if(!prac||!sVal||!eVal) return;
+            var ds=new Date(sVal); var de=new Date(eVal);
+            if(ds>de){ var tmp=ds; ds=de; de=tmp; }
+            var used=0;
+            if($('abModeRec').classList.contains('active')){
+              var dayIdx=parseInt($('abRecDay').value,10)||0;
+              used = applyWeekly(prac, dayIdx, ds, de);
+            }else{
+              used = applyPeriod(prac, ds, de);
+            }
+            save(); renderAbs();
+          };
+        }else{
+          // Keep practitioner list up to date
+          buildPracOptions($('abpPrac'));
+        }
+      }catch(e){ /* silent */ }
+    })();
+    // === /Bulk absence inserted ===
+
+var tbl=document.createElement('table'); tbl.setAttribute('data-name','Absences Praticiens S'+pad2(parseInt(w.value,10)));
     var thead=document.createElement('thead'); var trh=document.createElement('tr');
     trh.appendChild(el('th',null,'Praticien'));
     for(var i=0;i<5;i++){ trh.appendChild(el('th',null,DAYS[i]+' '+fmtDate(dates[i]))); }
